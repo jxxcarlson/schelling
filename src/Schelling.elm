@@ -1,6 +1,9 @@
 module Schelling exposing (..)
 
 import Array exposing (Array)
+import Svg exposing(Svg, svg, rect, g)
+import Svg.Attributes as SA
+import Html exposing(Html)
 
 
 type Cell
@@ -87,6 +90,7 @@ nRows =
 nCols =
     3
 
+cellSize = 30
 
 occupied : Cell -> Bool
 occupied cell =
@@ -109,7 +113,9 @@ location : Int -> Int -> Int
 location row col =
     nRows * row + col
 
-
+index : Int -> (Int, Int)
+index n =
+    (modBy nCols n, n // nCols)
 
 getElement : Int -> Int -> Array Cell ->  Cell
 getElement row col array =
@@ -164,3 +170,50 @@ ratio row col array =
         sizeOfMyTribe = toFloat (List.length myTribe)
      in
         sizeOfMyTribe / numberOfNeihbors
+
+
+--
+-- VISUALIZAtion
+--
+
+
+renderAsHtml : Array Cell -> Html msg
+renderAsHtml cellArray =
+    svg
+        [  SA.height <| String.fromFloat 400
+           , SA.width <| String.fromFloat 400
+        , SA.viewBox <| "0 0 400 400"
+        ]
+        [ renderAsSvg cellArray]
+
+renderAsSvg : Array Cell -> Svg msg
+renderAsSvg cellArray =
+    let
+        lastCellIndex = (nCols * nRows) - 1
+     in
+       List.range 0 lastCellIndex
+         |> List.map index
+         |> List.map (renderCell cellArray)
+         |> g []
+
+
+renderCell : Array Cell -> (Int, Int)  -> Svg msg
+renderCell cellArray (row, col)  =
+    let
+         color = case getElement row col cellArray |> identity of
+             Red -> "red"
+             Blue -> "blue"
+             IUndefined -> "black"
+     in
+       gridRect cellSize color row col
+
+gridRect : Float -> String -> Int -> Int  -> Svg msg
+gridRect size color row col =
+    rect
+        [ SA.width <| String.fromFloat size
+        , SA.height <| String.fromFloat size
+        , SA.x <| String.fromFloat <| size*(toFloat col)
+        , SA.y <| String.fromFloat <| size*(toFloat row)
+        , SA.fill color
+        ]
+        []
