@@ -6,7 +6,21 @@ import Svg.Attributes as SA
 import Html exposing(Html)
 import Array.Extra
 import List.Extra
+import Utility
 
+
+nRows =
+    6
+
+
+nCols =
+    6
+
+cellSize = 20
+
+modulus = 104729
+
+cells = initialize 0.4 0.3 0.5 (orbit ff (2*nRows*nCols) 23)
 
 type Cell
     = Occupied Id Threshold Identity EmotionalState
@@ -135,18 +149,10 @@ c8b =
 
 c9 = Unoccupied (Id 9)
 
-cells =
+testCells =
     Array.fromList [ c0, c1, c2, c3, c4, c5, c6, c7, c8 ]
 
 
-nRows =
-    3
-
-
-nCols =
-    3
-
-cellSize = 30
 
 
 
@@ -286,6 +292,9 @@ update randomNumber row col cellArray =
       else
         swapWithUnoccupiedCell randomNumber updatedCell cellArray
 
+--
+-- INITIALIZATION
+--
 
 
 pad : Int -> List Float -> List Float
@@ -322,6 +331,28 @@ initialize threshold_ probabilityOfUnoccupied probabilityOfRed randomNumbers =
 
 
 
+orbit : (Maybe Int -> Int) -> Int ->  Int -> List Float
+orbit f n seed  =
+    orbitAux f (n+1) [seed]
+      |> List.map (\k -> Utility.roundTo 4 <| (toFloat k)/modulus)
+      |> List.take (n - 1)
+
+orbitAux : (Maybe Int -> Int) -> Int -> List Int -> List Int
+orbitAux f n ns =
+    case n == 0 of
+        True -> ns
+        False -> orbitAux f (n - 1) ((f (List.head ns))::ns)
+
+
+ff : Maybe Int -> Int
+ff maybeInt =
+    case maybeInt of
+        Nothing -> modulus//2 + 1
+        Just k -> modBy modulus (74571*k + 20000)
+
+--
+-- UTILITY
+--
 
 
 diff : Array Cell -> Array Cell -> Array (Cell, Cell)
