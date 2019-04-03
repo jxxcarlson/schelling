@@ -5,6 +5,7 @@ import Svg exposing(Svg, svg, rect, g)
 import Svg.Attributes as SA
 import Html exposing(Html)
 import Array.Extra
+import List.Extra
 
 
 type Cell
@@ -284,6 +285,43 @@ update randomNumber row col cellArray =
         replace updatedCell cellArray
       else
         swapWithUnoccupiedCell randomNumber updatedCell cellArray
+
+
+
+pad : Int -> List Float -> List Float
+pad n xs =
+    let
+        blockSize = List.length xs
+        numberOfBlocks = n//blockSize + 1
+        xss = List.repeat numberOfBlocks xs |> List.concat
+    in
+    List.take n xss
+
+
+cellFromTuple : Float -> Float -> Float -> (Int, (Float, Float)) -> Cell
+cellFromTuple threshold_ probabilityOfUnoccupied probabilityOfRed (id_, (pU,pR)) =
+    if pU <= probabilityOfUnoccupied then
+      Unoccupied (Id id_)
+    else if pR  <= probabilityOfRed then
+      Occupied (Id id_) (Threshold threshold_) Red Satisfied
+    else
+      Occupied (Id id_) (Threshold threshold_) Blue Satisfied
+
+initialize : Float -> Float -> Float -> List Float -> Array Cell
+initialize threshold_ probabilityOfUnoccupied probabilityOfRed randomNumbers =
+    let
+       n = nRows*nCols
+       idList = List.range 0 (n-1)
+       rands = pad (2*n) randomNumbers
+       (a,b) = List.Extra.splitAt n rands
+       randTuples = List.map2 Tuple.pair a b
+       tupleList = List.map2 Tuple.pair idList randTuples
+    in
+    List.map (cellFromTuple threshold_ probabilityOfUnoccupied probabilityOfRed) tupleList
+      |> Array.fromList
+
+
+
 
 
 diff : Array Cell -> Array Cell -> Array (Cell, Cell)

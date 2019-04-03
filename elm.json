@@ -12,6 +12,7 @@
             "elm/http": "2.0.0",
             "elm/svg": "1.0.1",
             "elm-community/array-extra": "2.1.0",
+            "elm-community/list-extra": "8.2.0",
             "mdgriffith/elm-ui": "1.1.0"
         },
         "indirect": {
