@@ -251,6 +251,15 @@ updateEmotionalStateAtIndex  row col cellArray =
    in
       replace nextCell cellArray
 
+updateEmotionalStateOfCellAtIndex : Int -> Int -> Array Cell -> Cell
+updateEmotionalStateOfCellAtIndex  row col cellArray =
+   let
+       nextEmotionalState_ = nextEmotionalState row col cellArray
+       currentCell = Array.get (location row col) cellArray |> Maybe.withDefault (Unoccupied (Id -1))
+
+   in
+      updateEmotionalState nextEmotionalState_ currentCell
+
 
 swapWithUnoccupiedCell : Int -> Cell -> Array Cell -> Array Cell
 swapWithUnoccupiedCell randomNumber cell cellArray =
@@ -259,12 +268,22 @@ swapWithUnoccupiedCell randomNumber cell cellArray =
        i = modBy (Array.length unoccupiedSites) randomNumber
        unoccupiedSite = Array.get i unoccupiedSites |> Maybe.withDefault (Unoccupied (Id -1))
        idxTupleCell = indexTupleOfCell cell cellArray
-       idxUnoccupied = indexTupleOfCell unoccupiedSite cellArray 
+       idxUnoccupied = indexTupleOfCell unoccupiedSite cellArray
      in
      cellArray
        |> set idxUnoccupied cell
        |> set idxTupleCell unoccupiedSite
 
+
+update : Int -> Int -> Int -> Array Cell -> Array Cell
+update randomNumber row col cellArray =
+    let
+        updatedCell = updateEmotionalStateOfCellAtIndex  row col cellArray
+    in
+      if emotionalState updatedCell == Unsatisfied then
+        replace updatedCell cellArray
+      else
+        swapWithUnoccupiedCell randomNumber updatedCell cellArray
 
 
 diff : Array Cell -> Array Cell -> Array (Cell, Cell)
