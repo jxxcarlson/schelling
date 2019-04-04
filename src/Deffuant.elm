@@ -113,19 +113,32 @@ interaction (i, j) rnds om =
       pij = pc (i,j) om
       aiiNew = aii + pij * ( aji - aii + (numberAt 0 rnds))
       aijNew = aij + pij * ( ajj - aij + (numberAt 1 rnds))
+      rnds2 = List.drop 2 rnds
       om2 = set (i,i) (Just aiiNew) om1
       om3 = set (i,j) (Just aijNew) om2
-      -- Process acquaintances
+      -- Acquaintances
       aqIndices = getIndices (\x -> x /= Nothing) (getRow i om) |> Array.toList
-      aqIndices2 = randomizeIndices (List.drop 2 rnds) aqIndices |> List.take kModel
-      aqRands = List.take (List.length aqIndices) (List.drop 4 rnds)
+      aqIndices2 = randomizeIndices (List.take 4 rnds2) aqIndices |> List.take kModel
+      rnds3 = List.drop 4  rnds2
+      aqRands = List.take (List.length aqIndices) rnds3
+      rnds4 = List.drop (List.length aqIndices) rnds3
       aqData = List.map2 (\p r -> (p,r)) aqIndices2 aqRands |> Debug.log "aqData"
       newOpinions = List.map (opinionOfAcquaintance (i,j) om3 pij) aqData |> Debug.log "newOpinions"
       om4 = List.foldl (\(indexPair,opinion) omx -> set indexPair opinion omx) om3 newOpinions
+      -- Vanity
+      aij2 = get2 (i,j) om4
+      aji2 = get2 (j,i) om4
+      aii2 = get2 (i,i) om4
+      aij2New = aij2 + omega * (aji2 - aii2 + headNumber rnds4)
+      om5 = set (i,j) (Just aij2New) om4
     in
-     om4
+     om5
 
-
+headNumber : List Float -> Float
+headNumber list =
+    case List.head list of
+        Nothing -> 0
+        Just x -> x
 {-|
   opinionOfAcquaintance (0,1) opt 1 (4,0.3)
   -}
