@@ -24,7 +24,7 @@ cellSize = 8
 
 
 --
--- MATRIX STUF
+-- MATRIX STUFF
 --
 
 nRows =
@@ -76,12 +76,6 @@ identity cell =
     case cell of
         Unoccupied _ -> IUndefined
         Occupied _ _ ident_ _ -> ident_
-
-
-sameIdentity : Cell -> Cell -> Bool
-sameIdentity a b =
-        identity a == identity b
-
 
 
 emotionalState : Cell -> EmotionalState
