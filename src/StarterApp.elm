@@ -14,6 +14,9 @@ import Element.Font as Font
 import Element.Input as Input
 import Schelling exposing(nRows, nCols, Cell)
 import Array exposing(Array)
+import Time exposing(Posix)
+import Random
+import Utility
 
 
 
@@ -30,31 +33,47 @@ type alias Model =
     { input : String
     , output : String
     , cells : Array Cell
+    , tickCount : Int
+    , randomNumber : Float
+    , cellIndex : Int
+    , appState : AppState
     }
 
 
-type Msg
-    = NoOp
-    | InputText String
-    | ReverseText
-
-
-type alias Flags =
-    {}
-
+type AppState = Go | Stop
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { input = "App started"
       , output = "App started"
       , cells = Schelling.cells
+      , tickCount = 0
+      , randomNumber = 0
+      , cellIndex = 0
+      , appState = Stop
       }
     , Cmd.none
     )
 
 
+type Msg
+    = NoOp
+    | InputText String
+    | UpdateModel
+    | Tick Posix
+    | NewRandomNumber Float
+    | ToggleAppState
+
+
+
+type alias Flags =
+    {}
+
+
+
 subscriptions model =
-    Sub.none
+    Time.every 10 Tick
+
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -66,8 +85,30 @@ update msg model =
         InputText str ->
             ( { model | input = str, output = str }, Cmd.none )
 
-        ReverseText ->
-            ( { model | output = model.output |> String.reverse |> String.toLower }, Cmd.none )
+        UpdateModel ->
+            (  model , Cmd.none )
+
+        Tick posix ->
+            ({model | tickCount = model.tickCount + 1}, Random.generate NewRandomNumber (Random.float 0 1))
+
+        NewRandomNumber r ->
+            let
+                cellIndex = modBy (nRows*nCols) (model.cellIndex + 1)
+                rn = round (1000.0*r)
+                (row, col) = Schelling.indexTuple cellIndex
+
+            in
+              if model.appState == Stop then
+                 (model, Cmd.none)
+              else
+                ({ model | randomNumber = r, cellIndex = cellIndex
+                   , cells = Schelling.update rn row col model.cells
+                   }, Cmd.none)
+
+        ToggleAppState ->
+            case model.appState of
+                Stop -> ( { model | appState = Go}, Cmd.none )
+                Go -> ( { model | appState = Stop}, Cmd.none )
 
 
 
@@ -86,10 +127,20 @@ mainColumn model =
     column mainColumnStyle
         [ column [ spacing 20 ]
             [ title "Schelling model"
-            , Schelling.renderAsHtml model.cells |> Element.html
+            , column [moveRight 60, moveDown 10] [Schelling.renderAsHtml model.cells |> Element.html]
             ]
-        ]
+            , row [spacing 12, moveUp 12] [ goButton  model]
+            , row [spacing 12] [
 
+                el [Font.size 14, width labelWidth] (text <| "cycle: " ++ String.fromInt (model.tickCount//(nRows*nCols)))
+              , el [Font.size 14, width labelWidth] (text <| "cell index: " ++ String.fromInt model.cellIndex)
+               , el [Font.size 14, width labelWidth] (text <| "random: " ++ (String.fromFloat <| Utility.roundTo 4 <| model.randomNumber))
+               , el [Font.size 14, width labelWidth] (text <| "satisfied: " ++ (String.fromFloat <| Utility.roundTo 3 <| Schelling.fractionSatisfied model.cells))
+               , el [Font.size 14, width labelWidth] (text <| "threshold: " ++ (String.fromFloat <| Utility.roundTo 3 <| Schelling.modelThreshold))
+              ]
+         ]
+
+labelWidth = (px 120)
 
 title : String -> Element msg
 title str =
@@ -112,16 +163,21 @@ inputText model =
         }
 
 
-appButton : Element Msg
-appButton =
+goButton : Model -> Element Msg
+goButton model =
     row [ centerX ]
-        [ Input.button buttonStyle
-            { onPress = Just ReverseText
-            , label = el [ centerX, centerY ] (text "Reverse")
+        [ Input.button smallButtonStyle
+            { onPress = Just ToggleAppState
+            , label = el [ centerX, centerY ] (text (goButtonLabel model))
             }
         ]
 
 
+goButtonLabel : Model -> String
+goButtonLabel model =
+    case model.appState of
+        Go -> "Stop"
+        Stop -> "Go"
 
 --
 -- STYLE
@@ -142,3 +198,10 @@ buttonStyle =
     , paddingXY 15 8
     ]
 
+smallButtonStyle =
+    [ Background.color (rgb255 40 40 40)
+    , Font.color (rgb255 255 255 255)
+    , paddingXY 15 4
+    , Font.size 12
+    , height (px 20)
+    ]

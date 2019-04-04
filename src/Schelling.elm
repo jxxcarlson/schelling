@@ -10,17 +10,21 @@ import Utility
 
 
 nRows =
-    6
+    32
 
 
 nCols =
-    6
+    32
 
-cellSize = 20
+cellSize = 15
 
 modulus = 104729
 
-cells = initialize 0.4 0.3 0.5 (orbit ff (2*nRows*nCols) 23)
+modelThreshold = 0.8
+
+pUnoccupied = 0.4
+
+cells = initialize modelThreshold pUnoccupied 0.5 (orbit ff (2*nRows*nCols) 23)
 
 type Cell
     = Occupied Id Threshold Identity EmotionalState
@@ -204,8 +208,8 @@ neighbors row col cellArray =
 {-| Compute the next emotional state of the cell at (row, col)
 
 -}
-nextEmotionalState : Int -> Int -> Array Cell -> EmotionalState
-nextEmotionalState row col array =
+nextEmotionalState : (Int,  Int) -> Array Cell -> EmotionalState
+nextEmotionalState (row, col) array =
     let
         nbs =  neighbors row col array
         numberOfNeihbors = List.length nbs |> toFloat
@@ -216,23 +220,22 @@ nextEmotionalState row col array =
         sizeOfMyTribe = toFloat (List.length myTribe)
         ratio_ = sizeOfMyTribe / numberOfNeihbors
     in
-       case ratio_ > myThreshold  of
-           True -> Satisfied
-           False -> Unsatisfied
+       case ratio_ < myThreshold  of
+           True -> Unsatisfied
+           False -> Satisfied
 
 
-ratio : Int -> Int -> Array Cell -> Float
-ratio row col array =
+ratio : (Int, Int) -> Array Cell -> Float
+ratio (row, col) array =
     let
         nbs =  neighbors row col array
-        numberOfNeihbors = List.length nbs |> toFloat
+        numberOfNeighbors = List.length nbs |> toFloat
         me = get (row, col) array
-        myThreshold = threshold me
         myIdentity = identity me
         myTribe = nbs |> List.filter (\cell -> identity cell == myIdentity)
         sizeOfMyTribe = toFloat (List.length myTribe)
      in
-        sizeOfMyTribe / numberOfNeihbors
+        sizeOfMyTribe / numberOfNeighbors
 
 --
 -- UPDATE
@@ -252,7 +255,7 @@ replace cell cellArray =
 updateEmotionalStateAtIndex : Int -> Int -> Array Cell -> Array Cell
 updateEmotionalStateAtIndex  row col cellArray =
    let
-       nextEmotionalState_ = nextEmotionalState row col cellArray
+       nextEmotionalState_ = nextEmotionalState (row, col) cellArray
        currentCell = Array.get (location row col) cellArray |> Maybe.withDefault (Unoccupied (Id -1))
        nextCell = updateEmotionalState nextEmotionalState_ currentCell
    in
@@ -261,7 +264,7 @@ updateEmotionalStateAtIndex  row col cellArray =
 updateEmotionalStateOfCellAtIndex : Int -> Int -> Array Cell -> Cell
 updateEmotionalStateOfCellAtIndex  row col cellArray =
    let
-       nextEmotionalState_ = nextEmotionalState row col cellArray
+       nextEmotionalState_ = nextEmotionalState (row, col) cellArray
        currentCell = Array.get (location row col) cellArray |> Maybe.withDefault (Unoccupied (Id -1))
 
    in
@@ -271,7 +274,9 @@ updateEmotionalStateOfCellAtIndex  row col cellArray =
 swapWithUnoccupiedCell : Int -> Cell -> Array Cell -> Array Cell
 swapWithUnoccupiedCell randomNumber cell cellArray =
     let
-       unoccupiedSites = cellArray |> Array.filter (\cell_ -> not <| occupied cell_)
+       unoccupiedSites = cellArray
+          |> Array.filter (\cell_ -> not <| occupied cell_)
+
        i = modBy (Array.length unoccupiedSites) randomNumber
        unoccupiedSite = Array.get i unoccupiedSites |> Maybe.withDefault (Unoccupied (Id -1))
        idxTupleCell = indexTupleOfCell cell cellArray
@@ -288,10 +293,30 @@ update randomNumber row col cellArray =
         updatedCell = updateEmotionalStateOfCellAtIndex  row col cellArray
     in
       if emotionalState updatedCell == Unsatisfied then
-        replace updatedCell cellArray
-      else
         swapWithUnoccupiedCell randomNumber updatedCell cellArray
+      else
+        replace updatedCell cellArray
 
+
+--
+-- MEASURES
+--
+
+numberOccupied : Array Cell -> Int
+numberOccupied cellArray =
+   cellArray
+     |> Array.filter (\cell -> occupied cell)
+     |> Array.length
+
+fractionSatisfied : Array Cell -> Float
+fractionSatisfied cellArray =
+    let
+       nOccupied = numberOccupied cellArray |> toFloat
+    in
+   cellArray
+    |> Array.filter  (\cell -> emotionalState cell == Satisfied)
+    |> Array.length
+    |> (\n -> (toFloat n)/nOccupied)
 --
 -- INITIALIZATION
 --
@@ -369,9 +394,9 @@ diff cells1 cells2 =
 renderAsHtml : Array Cell -> Html msg
 renderAsHtml cellArray =
     svg
-        [  SA.height <| String.fromFloat 400
-           , SA.width <| String.fromFloat 400
-        , SA.viewBox <| "0 0 400 400"
+        [  SA.height <| String.fromFloat 600
+           , SA.width <| String.fromFloat 600
+        , SA.viewBox <| "0 0 600 600"
         ]
         [ renderAsSvg cellArray]
 
