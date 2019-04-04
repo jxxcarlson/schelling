@@ -1,4 +1,4 @@
-module Main exposing (main)
+module SchellingApp exposing (main)
 
 {- This is a starter app which presents a text label, text field, and a button.
    What you enter in the text field is echoed in the label.  When you press the
@@ -64,6 +64,7 @@ type Msg
     | Tick Posix
     | NewRandomNumbers (List Int)
     | ToggleAppState
+    | Reset
 
 
 
@@ -111,6 +112,9 @@ update msg model =
                 Stop -> ( { model | appState = Go}, Cmd.none )
                 Go -> ( { model | appState = Stop}, Cmd.none )
 
+        Reset ->
+            ( {model | cells = Schelling.cells, appState = Stop}, Cmd.none)
+
 
 
 --
@@ -130,7 +134,7 @@ mainColumn model =
             [ title "Schelling model"
             , column [moveRight 60, moveDown 10] [Schelling.renderAsHtml model.cells |> Element.html]
             ]
-            , row [spacing 12, moveUp 12] [ goButton  model]
+            , row [spacing 12, moveUp 12] [ goButton  model, resetButton]
             , row [spacing 12] [
 
                 el [Font.size 14, width labelWidth] (text <| "cycle: " ++ String.fromInt model.tickCount)
@@ -170,6 +174,17 @@ goButton model =
             , label = el [ centerX, centerY ] (text (goButtonLabel model))
             }
         ]
+
+
+resetButton :  Element Msg
+resetButton =
+    row [ centerX ]
+        [ Input.button smallButtonStyle
+            { onPress = Just Reset
+            , label = el [ centerX, centerY ] (text "Reset")
+            }
+        ]
+
 
 
 goButtonLabel : Model -> String

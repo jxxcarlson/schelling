@@ -350,9 +350,9 @@ renderCell : Array Cell -> (Int, Int)  -> Svg msg
 renderCell cellArray (row, col)  =
     let
          color = case get (row, col) cellArray |> identity of
-             Red -> "red"
-             Blue -> "blue"
-             IUndefined -> "black"
+             Red -> "rgb(255, 184, 77)"
+             Blue -> "rgb(204, 204, 0)"
+             IUndefined -> "rgb(115, 38, 38)"
      in
        gridRect cellSize color row col
 
@@ -364,5 +364,7 @@ gridRect size color row col =
         , SA.x <| String.fromFloat <| size*(toFloat col)
         , SA.y <| String.fromFloat <| size*(toFloat row)
         , SA.fill color
+        , SA.strokeWidth "1"
+        , SA.stroke "black"
         ]
         []
