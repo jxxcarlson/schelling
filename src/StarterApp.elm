@@ -12,11 +12,12 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import Schelling exposing(nRows, nCols, Cell)
+import Schelling exposing( Cell)
 import Array exposing(Array)
 import Time exposing(Posix)
 import Random
 import Utility
+import Matrix exposing (nRows, nCols)
 
 
 

@@ -7,24 +7,17 @@ import Html exposing(Html)
 import Array.Extra
 import List.Extra
 import Utility
+import Matrix exposing (nRows, nCols, location, indexTuple)
+import Cards exposing (randomizeList)
 
-
-nRows =
-    32
-
-
-nCols =
-   32
 
 cellSize = 15
 
-modulus = 104729
-
-modelThreshold = 0.6
+modelThreshold = 0.4
 
 pUnoccupied = 0.4
 
-cells = initialize modelThreshold pUnoccupied 0.5 (orbit ff (2*nRows*nCols) 23)
+cells = initialize modelThreshold pUnoccupied 0.5 (Utility.orbit Utility.ff (2*nRows*nCols) 23)
 
 type Cell
     = Occupied Id Threshold Identity EmotionalState
@@ -49,6 +42,13 @@ identity cell =
     case cell of
         Unoccupied _ -> IUndefined
         Occupied _ _ ident_ _ -> ident_
+
+
+sameIdentity : Cell -> Cell -> Bool
+sameIdentity a b =
+        identity a == identity b
+
+
 
 emotionalState : Cell -> EmotionalState
 emotionalState cell =
@@ -112,79 +112,17 @@ indexAux givenCell cell state =
 --     = Int Int (Array Cell)
 
 
-c0 =
-    Unoccupied (Id 0)
-
-c0b = Occupied (Id 0) (Threshold 0.3) Red Satisfied
-
-c1 =
-    Occupied (Id 1) (Threshold 0.3) Red Satisfied
-
-
-c2=
-    Unoccupied (Id 2)
-
-
-c3 =
-    Occupied (Id 3) (Threshold 0.3) Blue Satisfied
-
-
-c4 =
-    Occupied (Id 4) (Threshold 0.3) Blue Satisfied
-
-
-c5 =
-    Unoccupied (Id 5)
-
-
-c6 =
-    Occupied (Id 6) (Threshold 0.3) Blue Satisfied
-
-
-c7 =
-    Unoccupied (Id 7)
-
-
-c8 =
-    Occupied (Id 8) (Threshold 0.4) Blue Satisfied
-
-c8b =
-    Occupied (Id 8) (Threshold 0.4) Red Satisfied
-
-c9 = Unoccupied (Id 9)
-
-testCells =
-    Array.fromList [ c0, c1, c2, c3, c4, c5, c6, c7, c8 ]
-
-
-testSequence n =
-    List.map2 Tuple.pair (List.range 0 (n-1)) (List.range 0 (n-1))
-
 
 inputSequence : Int -> List Int -> List (Int, Int)
 inputSequence n rands =
     let
-        rands1 = pad n rands
+        rands1 = Utility.pad n rands
         rands2 = List.take (max 3 (n//10)) rands |> List.map (\k -> modBy n k) |> Debug.log "rands2"
         randomIndices = randomizeList rands2 (List.range 0 (n - 1))
     in
       List.map2 Tuple.pair randomIndices rands1
 
 
-sameIdentity : Cell -> Cell -> Bool
-sameIdentity a b =
-        identity a == identity b
-
-
-
-
-location : Int -> Int -> Int
-location row col =
-    nRows * row + col
-
-indexTuple : Int -> (Int, Int)
-indexTuple n =
-    (n // nCols, modBy nCols n)
 
 indexTupleOfCell : Cell -> Array Cell -> (Int, Int)
 indexTupleOfCell cell cellArray =
@@ -196,7 +134,7 @@ get (row, col) array =
 
 
 --
--- EMOTIONAL STATE
+-- NEIGHBORS
 --
 
 neighborFilter : ( Int, Int ) -> Bool
@@ -214,6 +152,12 @@ neighbors : Int -> Int -> Array Cell -> List Cell
 neighbors row col cellArray =
     neighborIndices row col
         |> List.map (\( r, c ) -> get (r, c) cellArray)
+
+
+--
+-- EMOTIONAL STATE
+--
+
 
 {-| Compute the next emotional state of the cell at (row, col)
 
@@ -314,37 +258,7 @@ updateCell (idx, rand) cellArray =
         replace updatedCell cellArray
 
 
-cutList : Int -> List a -> List a
-cutList k list =
-   let
-       kk = modBy (List.length list) k
-       (a, b) = List.Extra.splitAt kk list
-    in
-      b ++ a
 
-
-shuffle : List a -> List a
-shuffle list =
-    let
-      (firstHalf, secondHalf) = List.Extra.splitAt ((List.length list)//2) list
-    in
-      List.Extra.interweave firstHalf secondHalf
-
-dealersMove : Int -> List a -> List a
-dealersMove k list =
-    list
-      |> cutList k
-      |> shuffle
-
-
-
-{-|
-  > randomizeList [2, 4, 3] [1,2,3,4,5,6]
-  [4,5,3,6,1,2]
--}
-randomizeList : (List Int) -> List a -> List a
-randomizeList randInts list =
-    List.foldl dealersMove list randInts
 
 --
 -- MEASURES
@@ -369,18 +283,7 @@ fractionSatisfied cellArray =
 -- INITIALIZATION
 --
 
-{-|
-> pad 16 [1,2,3]
-[1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1]
--}
-pad : Int -> List a -> List a
-pad n xs =
-    let
-        blockSize = List.length xs
-        numberOfBlocks = n//blockSize + 1
-        xss = List.repeat numberOfBlocks xs |> List.concat
-    in
-    List.take n xss
+
 
 
 cellFromTuple : Float -> Float -> Float -> (Int, (Float, Float)) -> Cell
@@ -397,7 +300,7 @@ initialize threshold_ probabilityOfUnoccupied probabilityOfRed randomNumbers =
     let
        n = nRows*nCols
        idList = List.range 0 (n-1)
-       rands = pad (2*n) randomNumbers
+       rands = Utility.pad (2*n) randomNumbers
        (a,b) = List.Extra.splitAt n rands
        randTuples = List.map2 Tuple.pair a b
        tupleList = List.map2 Tuple.pair idList randTuples
@@ -407,24 +310,9 @@ initialize threshold_ probabilityOfUnoccupied probabilityOfRed randomNumbers =
 
 
 
-orbit : (Maybe Int -> Int) -> Int ->  Int -> List Float
-orbit f n seed  =
-    orbitAux f (n+1) [seed]
-      |> List.map (\k -> Utility.roundTo 4 <| (toFloat k)/modulus)
-      |> List.take (n - 1)
-
-orbitAux : (Maybe Int -> Int) -> Int -> List Int -> List Int
-orbitAux f n ns =
-    case n == 0 of
-        True -> ns
-        False -> orbitAux f (n - 1) ((f (List.head ns))::ns)
 
 
-ff : Maybe Int -> Int
-ff maybeInt =
-    case maybeInt of
-        Nothing -> modulus//2 + 1
-        Just k -> modBy modulus (74571*k + 20000)
+
 
 --
 -- UTILITY
