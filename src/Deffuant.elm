@@ -156,7 +156,7 @@ randomizeIndices rnds indices =
     let
        randInts = List.take 4 rnds |> List.map (\x -> round (1001*x) )
     in
-      Cards.randomizeList randInts indices
+      Cards.randomize randInts indices
 
 
 getIndices : (a -> Bool) -> Array a -> Array Int

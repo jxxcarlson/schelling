@@ -27,6 +27,6 @@ dealersMove k list =
   > randomizeList [2, 4, 3] [1,2,3,4,5,6]
   [4,5,3,6,1,2]
 -}
-randomizeList : (List Int) -> List a -> List a
-randomizeList integerList list =
+randomize : (List Int) -> List a -> List a
+randomize integerList list =
     List.foldl dealersMove list integerList

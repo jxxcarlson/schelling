@@ -12,12 +12,12 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import Schelling exposing( Cell)
+import Schelling exposing( Cell, nRows, nCols)
 import Array exposing(Array)
 import Time exposing(Posix)
 import Random
 import Utility
-import Matrix exposing (nRows, nCols)
+
 
 
 
@@ -34,6 +34,10 @@ type alias Model =
     { input : String
     , output : String
     , cells : Array Cell
+    , threshold : Float
+    , thresholdString : String
+    , fractionUnoccupied : Float
+    , fractionA : Float
     , tickCount : Int
     , randomNumber : Float
     , cellIndex : Int
@@ -47,7 +51,11 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { input = "App started"
       , output = "App started"
-      , cells = Schelling.cells
+      , cells = Schelling.initialize 0.4 0.1 0.5 (Utility.orbit Utility.ff (2*nRows*nCols) 23)
+      , threshold = 0.4
+      , thresholdString = "0.4"
+      , fractionUnoccupied = 0.1
+      , fractionA = 0.5
       , tickCount = 0
       , randomNumber = 0
       , cellIndex = 0
@@ -59,7 +67,7 @@ init flags =
 
 type Msg
     = NoOp
-    | InputText String
+    | InputThreshold String
     | UpdateModel
     | Tick Posix
     | NewRandomNumbers (List Int)
@@ -84,8 +92,8 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        InputText str ->
-            ( { model | input = str, output = str }, Cmd.none )
+        InputThreshold str ->
+            ( { model | thresholdString = str, threshold = String.toFloat str |> Maybe.withDefault 0.4}, Cmd.none )
 
         UpdateModel ->
             (  model , Cmd.none )
@@ -113,7 +121,12 @@ update msg model =
                 Go -> ( { model | appState = Stop}, Cmd.none )
 
         Reset ->
-            ( {model | cells = Schelling.cells, tickCount = 0, appState = Stop}, Cmd.none)
+            ( {model | cells = Schelling.initialize
+                                 model.threshold
+                                 model.fractionUnoccupied
+                                 model.fractionA
+                                 (Utility.orbit Utility.ff (2*nRows*nCols) 23)
+              , tickCount = 0, appState = Stop}, Cmd.none)
 
 
 
@@ -132,14 +145,15 @@ mainColumn model =
     column mainColumnStyle
         [ column [ spacing 20 ]
             [ title "Schelling model"
-            , column [moveRight 60, moveDown 10] [Schelling.renderAsHtml model.cells |> Element.html]
+            , column [moveRight 40, moveDown 10] [Schelling.renderAsHtml model.cells |> Element.html]
             ]
-            , row [spacing 12, moveUp 12] [ goButton  model, resetButton]
+            , row [spacing 12, moveUp 12] [ goButton  model, resetButton, inputText model]
             , row [spacing 12] [
 
                 el [Font.size 14, width labelWidth] (text <| "cycle: " ++ String.fromInt model.tickCount)
-               , el [Font.size 14, width labelWidth] (text <| "satisfied: " ++ (String.fromFloat <| Utility.roundTo 3 <| Schelling.fractionSatisfied model.cells))
-               , el [Font.size 14, width labelWidth] (text <| "threshold: " ++ (String.fromFloat <| Utility.roundTo 3 <| Schelling.modelThreshold))
+               , el [Font.size 14, width labelWidth]
+                   (text <| "satisfied: "
+                      ++ (String.fromFloat <| Utility.roundTo 1 <| 100*(Schelling.fractionSatisfied model.cells))++"%")
               ]
          ]
 
@@ -158,11 +172,11 @@ outputDisplay model =
 
 inputText : Model -> Element Msg
 inputText model =
-    Input.text []
-        { onChange = InputText
-        , text = model.input
+    Input.text [Font.size 12, height (px 24), width (px 60)]
+        { onChange = InputThreshold
+        , text = model.thresholdString
         , placeholder = Nothing
-        , label = Input.labelLeft [] <| el [] (text "")
+        , label = Input.labelLeft [] <| el [moveDown 8] (text "Threshold")
         }
 
 

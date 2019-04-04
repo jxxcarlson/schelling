@@ -1,4 +1,13 @@
-module Schelling exposing (..)
+module Schelling exposing (
+   Cell
+   , nRows
+   , nCols
+   , updateCells
+   , initialize
+   , inputSequence
+   , fractionSatisfied
+   , renderAsHtml
+  )
 
 import Array exposing (Array)
 import Svg exposing(Svg, svg, rect, g)
@@ -7,18 +16,42 @@ import Html exposing(Html)
 import Array.Extra
 import List.Extra
 import Utility
-import Matrix exposing (nRows, nCols, location, indexTuple)
-import Cards exposing (randomizeList)
+import Cards
 
 
 cellSize = 8
 
-modelThreshold = 0.8
 
-pUnoccupied = 0.1
 
-cells = initialize modelThreshold pUnoccupied 0.5 (Utility.orbit Utility.ff (2*nRows*nCols) 23)
+--
+-- MATRIX STUF
+--
 
+nRows =
+    40
+
+nCols =
+   40
+
+
+{- I am using 1D Arrays, so location
+and matrixIndex are used to work with
+such arrays as if they were matrices.
+-}
+
+location : Int -> Int -> Int
+location row col =
+    nRows * row + col
+
+matrixIndex : Int -> (Int, Int)
+matrixIndex n =
+    (n // nCols, modBy nCols n)
+
+--
+-- Cells
+--
+
+{-| Cell and Array Cell are the basic data structures.  T -}
 type Cell
     = Occupied Id Threshold Identity EmotionalState
     | Unoccupied Id
@@ -35,6 +68,7 @@ type Identity
     = Red
     | Blue
     | IUndefined
+
 
 
 identity : Cell -> Identity
@@ -96,8 +130,6 @@ index cell cellArray =
          -1
 
 
-
-
 indexAux : Cell -> Cell -> (Bool, Int) -> (Bool, Int)
 indexAux givenCell cell state =
     if (id givenCell) == (id cell) then
@@ -108,25 +140,25 @@ indexAux givenCell cell state =
       state
 
 
-
-inputSequence : Int -> List Int -> List (Int, Int)
-inputSequence n rands =
-    let
-        rands1 = Utility.pad n rands
-        rands2 = List.take (max 3 (n//10)) rands |> List.map (\k -> modBy n k) |> Debug.log "rands2"
-        randomIndices = randomizeList rands2 (List.range 0 (n - 1))
-    in
-      List.map2 Tuple.pair randomIndices rands1
-
-
-
 indexTupleOfCell : Cell -> Array Cell -> (Int, Int)
 indexTupleOfCell cell cellArray =
-   index cell cellArray |> indexTuple
+   index cell cellArray |> matrixIndex
 
 get : (Int, Int) -> Array Cell ->  Cell
 get (row, col) array =
     Array.get (location row col) array |> Maybe.withDefault (Unoccupied <| Id -1)
+
+set : (Int, Int) -> Cell -> Array Cell -> Array Cell
+set (row, col) cell cellArray =
+   Array.set (location row col) cell cellArray
+
+
+
+{-| Replace the cell with id equal to the given cell by the given cell -}
+replace : Cell -> Array Cell -> Array Cell
+replace cell cellArray =
+    Array.set (index cell cellArray) cell cellArray
+
 
 
 --
@@ -174,9 +206,11 @@ nextEmotionalState (row, col) array =
            True -> Unsatisfied
            False -> Satisfied
 
-
-ratio : (Int, Int) -> Array Cell -> Float
-ratio (row, col) array =
+{-| Compute the fraction of occupied cells that have the same
+identity as the cell with given (row, col).
+-}
+fractionLikeMe : (Int, Int) -> Array Cell -> Float
+fractionLikeMe (row, col) array =
     let
         nbs =  neighbors row col array
         numberOfNeighbors = List.length nbs |> toFloat
@@ -191,25 +225,25 @@ ratio (row, col) array =
 -- UPDATE
 --
 
-set : (Int, Int) -> Cell -> Array Cell -> Array Cell
-set (row, col) cell cellArray =
-   Array.set (location row col) cell cellArray
-
-{-| Replace the cell with id equal to the given cell by the given cell -}
-replace : Cell -> Array Cell -> Array Cell
-replace cell cellArray =
-    Array.set (index cell cellArray) cell cellArray
 
 
+updateCells : List (Int, Int) ->  Array Cell -> Array Cell
+updateCells tupleList cellArray =
+    List.foldl updateCell cellArray tupleList
 
-updateEmotionalStateAtIndex : Int -> Int -> Array Cell -> Array Cell
-updateEmotionalStateAtIndex  row col cellArray =
-   let
-       nextEmotionalState_ = nextEmotionalState (row, col) cellArray
-       currentCell = Array.get (location row col) cellArray |> Maybe.withDefault (Unoccupied (Id -1))
-       nextCell = updateEmotionalState nextEmotionalState_ currentCell
-   in
-      replace nextCell cellArray
+
+updateCell : (Int, Int) -> Array Cell -> Array Cell
+updateCell (idx, rand) cellArray =
+    let
+        (row, col) = matrixIndex idx
+        updatedCell = updateEmotionalStateOfCellAtIndex  row col cellArray
+    in
+      if emotionalState updatedCell == Unsatisfied then
+        swapWithUnoccupiedCell rand updatedCell cellArray
+      else
+        replace updatedCell cellArray
+
+
 
 updateEmotionalStateOfCellAtIndex : Int -> Int -> Array Cell -> Cell
 updateEmotionalStateOfCellAtIndex  row col cellArray =
@@ -237,23 +271,18 @@ swapWithUnoccupiedCell randomNumber cell cellArray =
        |> set idxTupleCell unoccupiedSite
 
 
-updateCells : List (Int, Int) ->  Array Cell -> Array Cell
-updateCells tupleList cellArray =
-    List.foldl updateCell cellArray tupleList
-
-
-updateCell : (Int, Int) -> Array Cell -> Array Cell
-updateCell (idx, rand) cellArray =
+{-| This function constructs a list of tuples
+  form a list of integers (intended to be
+  randomly generated).  It is used as the first
+  argument to the updateCells function. -}
+inputSequence : Int -> List Int -> List (Int, Int)
+inputSequence n rands =
     let
-        (row, col) = indexTuple idx
-        updatedCell = updateEmotionalStateOfCellAtIndex  row col cellArray
+        rands1 = Utility.pad n rands
+        rands2 = List.take (max 3 (n//10)) rands |> List.map (\k -> modBy n k)
+        randomIndices = Cards.randomize rands2 (List.range 0 (n - 1))
     in
-      if emotionalState updatedCell == Unsatisfied then
-        swapWithUnoccupiedCell rand updatedCell cellArray
-      else
-        replace updatedCell cellArray
-
-
+      List.map2 Tuple.pair randomIndices rands1
 
 
 --
@@ -275,22 +304,15 @@ fractionSatisfied cellArray =
     |> Array.filter  (\cell -> emotionalState cell == Satisfied)
     |> Array.length
     |> (\n -> (toFloat n)/nOccupied)
+
+
 --
--- INITIALIZATION
+-- CONSTRUCTORS
 --
 
 
 
-
-cellFromTuple : Float -> Float -> Float -> (Int, (Float, Float)) -> Cell
-cellFromTuple threshold_ probabilityOfUnoccupied probabilityOfRed (id_, (pU,pR)) =
-    if pU <= probabilityOfUnoccupied then
-      Unoccupied (Id id_)
-    else if pR  <= probabilityOfRed then
-      Occupied (Id id_) (Threshold threshold_) Red Satisfied
-    else
-      Occupied (Id id_) (Threshold threshold_) Blue Satisfied
-
+{-| Construct an array of Cells with given parameters -}
 initialize : Float -> Float -> Float -> List Float -> Array Cell
 initialize threshold_ probabilityOfUnoccupied probabilityOfRed randomNumbers =
     let
@@ -306,6 +328,16 @@ initialize threshold_ probabilityOfUnoccupied probabilityOfRed randomNumbers =
 
 
 
+{-| Construct a cell from given data -}
+cellFromTuple : Float -> Float -> Float -> (Int, (Float, Float)) -> Cell
+cellFromTuple threshold_ probabilityOfUnoccupied probabilityOfRed (id_, (pU,pR)) =
+    if pU <= probabilityOfUnoccupied then
+      Unoccupied (Id id_)
+    else if pR  <= probabilityOfRed then
+      Occupied (Id id_) (Threshold threshold_) Red Satisfied
+    else
+      Occupied (Id id_) (Threshold threshold_) Blue Satisfied
+
 
 
 
@@ -315,6 +347,8 @@ initialize threshold_ probabilityOfUnoccupied probabilityOfRed randomNumbers =
 --
 
 
+{-| Diff two arrays of cells
+-}
 diff : Array Cell -> Array Cell -> Array (Cell, Cell)
 diff cells1 cells2 =
     Array.Extra.zip cells1 cells2
@@ -322,16 +356,16 @@ diff cells1 cells2 =
 
 
 --
--- VISUALIZAtion
+--  RENDER A CELL ARRAY AS SVG
 --
 
 
 renderAsHtml : Array Cell -> Html msg
 renderAsHtml cellArray =
     svg
-        [  SA.height <| String.fromFloat 600
-           , SA.width <| String.fromFloat 600
-        , SA.viewBox <| "0 0 600 600"
+        [  SA.height <| String.fromFloat 400
+           , SA.width <| String.fromFloat 400
+        , SA.viewBox <| "0 0 400 400"
         ]
         [ renderAsSvg cellArray]
 
@@ -341,7 +375,7 @@ renderAsSvg cellArray =
         lastCellIndex = (nCols * nRows) - 1
      in
        List.range 0 lastCellIndex
-         |> List.map indexTuple
+         |> List.map matrixIndex
          |> List.map (renderCell cellArray)
          |> g []
 
