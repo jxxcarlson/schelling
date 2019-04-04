@@ -1,6 +1,10 @@
 module Deffuant exposing (..)
 
 import Array exposing(Array)
+import List.Extra
+import Array.Extra
+import Cards
+
 
 
 --
@@ -18,8 +22,8 @@ nCols : Int
 nCols =
   nAgents
 
-k : Int
-k = 2
+kModel : Int
+kModel = 2
 
 rho : Float
 rho = 1
@@ -70,7 +74,9 @@ get2 (row, col) array =
         Nothing -> 0
         Just x -> x
 
-
+numberAt : Int -> (List Float) -> Float
+numberAt k list =
+    List.Extra.getAt k list |> Maybe.withDefault 0.0
 
 set : (Int, Int) -> Maybe Float -> OpinionMatrix -> OpinionMatrix
 set (row, col) cell opinionMatrix =
@@ -88,8 +94,8 @@ getRow k array =
 --
 
 
-interaction : (Int, Int) -> (Float, Float) -> OpinionMatrix -> OpinionMatrix
-interaction (i, j) (rnd1, rnd2) om =
+interaction : (Int, Int) -> (List Float) -> OpinionMatrix -> OpinionMatrix
+interaction (i, j) rnds om =
     let
       om1 = interactonPhase1 (i, j) om
       aii = get2 (i,i) om
@@ -97,12 +103,35 @@ interaction (i, j) (rnd1, rnd2) om =
       aij = get2 (i,j) om
       aji = get2 (j,i) om
       pij = pc (i,j) om
-      aiiNew = aii + pij * ( aji - aii + rnd1)
-      aijNew = aij + pij * ( ajj - aij + rnd2)
+      aiiNew = aii + pij * ( aji - aii + (numberAt 0 rnds))
+      aijNew = aij + pij * ( ajj - aij + (numberAt 1 rnds))
       om2 = set (i,i) (Just aiiNew) om1
       om3 = set (i,j) (Just aijNew) om2
+      -- Process acquaintances
+      aq = acquaintances i om
+      naq = Array.length aq
+      indices = List.range 0 (naq - 1)
+      indices2 = randomizeIndices (List.drop 2 rnds) indices |> List.take kModel
+      aq2 = select indices2 aq
+
     in
      om3
+
+randomizeIndices : List Float -> List Int -> List Int
+randomizeIndices rnds indices =
+    let
+       randInts = List.take 4 rnds |> List.map (\x -> round (1001*x) )
+    in
+      Cards.randomizeList randInts indices
+
+
+select : List Int -> Array a -> Array a
+select indices array =
+    array
+      |> Array.indexedMap Tuple.pair
+      |> Array.filter(\(i, x) -> List.member i indices)
+      |> Array.map Tuple.second
+
 
 acquaintances : Int -> OpinionMatrix -> Array (Maybe Float)
 acquaintances i om =
