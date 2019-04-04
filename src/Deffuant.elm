@@ -23,12 +23,14 @@ indexTuple n =
 type alias OpinionMatrix = Array (Maybe Float)
 
 opinionMatrixTest = Array.fromList [
-     Just 1.0, Just 0.5, Nothing, Just 0.2, Just 0.8
-   , Just 0.2, Just 0.4, Nothing, Just 0.5, Nothing
-   , Nothing, Nothing, Just 0.4, Just 0.6, Nothing
+     Nothing, Just 0.5, Nothing, Just 0.2, Just 0.8
+   , Just 0.2, Nothing, Nothing, Just 0.5, Nothing
+   , Nothing, Nothing, Nothing, Just 0.6, Nothing
    , Just 0.8, Just 0.2, Just 0.1, Nothing, Nothing
    , Just 0.4, Nothing, Nothing,  Nothing, Nothing
    ]
+
+opt = opinionMatrixTest
 
 get : (Int, Int) -> OpinionMatrix ->  Maybe Float
 get (row, col) array =
@@ -38,3 +40,18 @@ get (row, col) array =
 set : (Int, Int) -> Maybe Float -> OpinionMatrix -> OpinionMatrix
 set (row, col) cell opinionMatrix =
    Array.set (location (row, col)) cell opinionMatrix
+
+
+getRow : Int -> OpinionMatrix ->  Array (Maybe Float)
+getRow k array =
+    Array.map (\col -> Array.get (location (k, col)) array |> Maybe.withDefault Nothing)
+      (Array.fromList (List.range 0 (nCols - 1 )))
+
+
+
+
+acquaintances : Int -> OpinionMatrix -> Array (Maybe Float)
+acquaintances i om =
+    getRow i om
+      |> Array.filter (\value -> value  /= Nothing)
+

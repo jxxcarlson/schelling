@@ -6,7 +6,7 @@ cut : Int -> List a -> List a
 cut j list =
    let
        k = modBy (List.length list) j
-       (a, b) = List.Extra.splitAt j list
+       (a, b) = List.Extra.splitAt k list
     in
       b ++ a
 
