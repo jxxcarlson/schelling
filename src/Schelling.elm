@@ -14,13 +14,13 @@ nRows =
 
 
 nCols =
-    32
+   32
 
 cellSize = 15
 
 modulus = 104729
 
-modelThreshold = 0.8
+modelThreshold = 0.6
 
 pUnoccupied = 0.4
 
@@ -157,8 +157,18 @@ testCells =
     Array.fromList [ c0, c1, c2, c3, c4, c5, c6, c7, c8 ]
 
 
+testSequence n =
+    List.map2 Tuple.pair (List.range 0 (n-1)) (List.range 0 (n-1))
 
 
+inputSequence : Int -> List Int -> List (Int, Int)
+inputSequence n rands =
+    let
+        rands1 = pad n rands
+        rands2 = List.take (max 3 (n//10)) rands |> List.map (\k -> modBy n k) |> Debug.log "rands2"
+        randomIndices = randomizeList rands2 (List.range 0 (n - 1))
+    in
+      List.map2 Tuple.pair randomIndices rands1
 
 
 sameIdentity : Cell -> Cell -> Bool
@@ -287,16 +297,54 @@ swapWithUnoccupiedCell randomNumber cell cellArray =
        |> set idxTupleCell unoccupiedSite
 
 
-update : Int -> Int -> Int -> Array Cell -> Array Cell
-update randomNumber row col cellArray =
+updateCells : List (Int, Int) ->  Array Cell -> Array Cell
+updateCells tupleList cellArray =
+    List.foldl updateCell cellArray tupleList
+
+
+updateCell : (Int, Int) -> Array Cell -> Array Cell
+updateCell (idx, rand) cellArray =
     let
+        (row, col) = indexTuple idx
         updatedCell = updateEmotionalStateOfCellAtIndex  row col cellArray
     in
       if emotionalState updatedCell == Unsatisfied then
-        swapWithUnoccupiedCell randomNumber updatedCell cellArray
+        swapWithUnoccupiedCell rand updatedCell cellArray
       else
         replace updatedCell cellArray
 
+
+cutList : Int -> List a -> List a
+cutList k list =
+   let
+       kk = modBy (List.length list) k
+       (a, b) = List.Extra.splitAt kk list
+    in
+      b ++ a
+
+
+shuffle : List a -> List a
+shuffle list =
+    let
+      (firstHalf, secondHalf) = List.Extra.splitAt ((List.length list)//2) list
+    in
+      List.Extra.interweave firstHalf secondHalf
+
+dealersMove : Int -> List a -> List a
+dealersMove k list =
+    list
+      |> cutList k
+      |> shuffle
+
+
+
+{-|
+  > randomizeList [2, 4, 3] [1,2,3,4,5,6]
+  [4,5,3,6,1,2]
+-}
+randomizeList : (List Int) -> List a -> List a
+randomizeList randInts list =
+    List.foldl dealersMove list randInts
 
 --
 -- MEASURES
@@ -321,8 +369,11 @@ fractionSatisfied cellArray =
 -- INITIALIZATION
 --
 
-
-pad : Int -> List Float -> List Float
+{-|
+> pad 16 [1,2,3]
+[1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1]
+-}
+pad : Int -> List a -> List a
 pad n xs =
     let
         blockSize = List.length xs

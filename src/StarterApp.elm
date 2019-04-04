@@ -61,7 +61,7 @@ type Msg
     | InputText String
     | UpdateModel
     | Tick Posix
-    | NewRandomNumber Float
+    | NewRandomNumbers (List Int)
     | ToggleAppState
 
 
@@ -72,7 +72,7 @@ type alias Flags =
 
 
 subscriptions model =
-    Time.every 10 Tick
+    Time.every 100 Tick
 
 
 
@@ -89,20 +89,20 @@ update msg model =
             (  model , Cmd.none )
 
         Tick posix ->
-            ({model | tickCount = model.tickCount + 1}, Random.generate NewRandomNumber (Random.float 0 1))
+            case model.appState of
+                Stop -> (model, Cmd.none)
+                Go ->
+                 ({model | tickCount = model.tickCount + 1}, Random.generate NewRandomNumbers (Random.list 1000 (Random.int 0 100000)))
 
-        NewRandomNumber r ->
+        NewRandomNumbers randList ->
             let
-                cellIndex = modBy (nRows*nCols) (model.cellIndex + 1)
-                rn = round (1000.0*r)
-                (row, col) = Schelling.indexTuple cellIndex
-
+                n = nRows*nCols - 1
             in
               if model.appState == Stop then
                  (model, Cmd.none)
               else
-                ({ model | randomNumber = r, cellIndex = cellIndex
-                   , cells = Schelling.update rn row col model.cells
+                ({ model |
+                   cells = Schelling.updateCells (Schelling.inputSequence n randList) model.cells
                    }, Cmd.none)
 
         ToggleAppState ->
@@ -132,9 +132,7 @@ mainColumn model =
             , row [spacing 12, moveUp 12] [ goButton  model]
             , row [spacing 12] [
 
-                el [Font.size 14, width labelWidth] (text <| "cycle: " ++ String.fromInt (model.tickCount//(nRows*nCols)))
-              , el [Font.size 14, width labelWidth] (text <| "cell index: " ++ String.fromInt model.cellIndex)
-               , el [Font.size 14, width labelWidth] (text <| "random: " ++ (String.fromFloat <| Utility.roundTo 4 <| model.randomNumber))
+                el [Font.size 14, width labelWidth] (text <| "cycle: " ++ String.fromInt model.tickCount)
                , el [Font.size 14, width labelWidth] (text <| "satisfied: " ++ (String.fromFloat <| Utility.roundTo 3 <| Schelling.fractionSatisfied model.cells))
                , el [Font.size 14, width labelWidth] (text <| "threshold: " ++ (String.fromFloat <| Utility.roundTo 3 <| Schelling.modelThreshold))
               ]
