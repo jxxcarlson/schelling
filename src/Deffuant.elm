@@ -31,6 +31,12 @@ rho = 1
 sigma : Float
 sigma = 1
 
+omega : Float
+omega = 0.5
+
+delta : Float
+delta = 0.1
+
 --
 -- MATRIX STUFF
 --
