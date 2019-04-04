@@ -107,10 +107,6 @@ indexAux givenCell cell state =
     else
       state
 
---
--- type CellMatrix
---     = Int Int (Array Cell)
-
 
 
 inputSequence : Int -> List Int -> List (Int, Int)
