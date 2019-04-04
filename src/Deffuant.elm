@@ -59,6 +59,8 @@ opinionMatrixTest = Array.fromList [
 
 opt = opinionMatrixTest
 
+floats = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4]
+
 --
 -- MATRIX OPERATIONS
 --
@@ -108,14 +110,27 @@ interaction (i, j) rnds om =
       om2 = set (i,i) (Just aiiNew) om1
       om3 = set (i,j) (Just aijNew) om2
       -- Process acquaintances
-      aq = acquaintances i om
-      naq = Array.length aq
-      indices = List.range 0 (naq - 1)
-      indices2 = randomizeIndices (List.drop 2 rnds) indices |> List.take kModel
-      aq2 = select indices2 aq
-
+      aqIndices = getIndices (\x -> x /= Nothing) (getRow i om) |> Array.toList
+      aqIndices2 = randomizeIndices (List.drop 2 rnds) aqIndices |> List.take kModel
+      aqRands = List.take (List.length aqIndices) (List.drop 4 rnds)
+      aqData = List.map2 (\p r -> (p,r)) aqIndices2 aqRands |> Debug.log "aqData"
+      newOpinions = List.map (opinionOfAcquaintance (i,j) om3 pij) aqData |> Debug.log "newOpinions"
+      om4 = List.foldl (\(indexPair,opinion) omx -> set indexPair opinion omx) om3 newOpinions
     in
-     om3
+     om4
+
+
+{-|
+  opinionOfAcquaintance (0,1) opt 1 (4,0.3)
+  -}
+opinionOfAcquaintance : (Int, Int) -> OpinionMatrix -> Float -> (Int, Float) -> ((Int, Int), Maybe Float)
+opinionOfAcquaintance (i,j) om pij (q, rnd) =
+    let
+       aiq = get2 (i,q) om
+       ajq = get2 (j,q) om
+    in
+    ((i, q), Just (aiq + pij*rho*(ajq - aiq + rnd)))
+
 
 randomizeIndices : List Float -> List Int -> List Int
 randomizeIndices rnds indices =
@@ -125,6 +140,16 @@ randomizeIndices rnds indices =
       Cards.randomizeList randInts indices
 
 
+getIndices : (a -> Bool) -> Array a -> Array Int
+getIndices f array  =
+    array
+      |> Array.indexedMap Tuple.pair
+      |> Array.filter (\(i, x) -> f x)
+      |> Array.map Tuple.first
+
+
+
+{-| Select subarry -}
 select : List Int -> Array a -> Array a
 select indices array =
     array
@@ -137,6 +162,8 @@ acquaintances : Int -> OpinionMatrix -> Array (Maybe Float)
 acquaintances i om =
     getRow i om
       |> Array.filter (\value -> value  /= Nothing)
+
+
 
 interactonPhase1 : (Int, Int) -> OpinionMatrix -> OpinionMatrix
 interactonPhase1 (i, j) om =
