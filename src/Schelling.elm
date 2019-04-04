@@ -11,11 +11,11 @@ import Matrix exposing (nRows, nCols, location, indexTuple)
 import Cards exposing (randomizeList)
 
 
-cellSize = 15
+cellSize = 8
 
-modelThreshold = 0.4
+modelThreshold = 0.8
 
-pUnoccupied = 0.4
+pUnoccupied = 0.1
 
 cells = initialize modelThreshold pUnoccupied 0.5 (Utility.orbit Utility.ff (2*nRows*nCols) 23)
 

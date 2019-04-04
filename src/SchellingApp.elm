@@ -74,7 +74,7 @@ type alias Flags =
 
 
 subscriptions model =
-    Time.every 100 Tick
+    Time.every 1000 Tick
 
 
 
@@ -113,7 +113,7 @@ update msg model =
                 Go -> ( { model | appState = Stop}, Cmd.none )
 
         Reset ->
-            ( {model | cells = Schelling.cells, appState = Stop}, Cmd.none)
+            ( {model | cells = Schelling.cells, tickCount = 0, appState = Stop}, Cmd.none)
 
 
 

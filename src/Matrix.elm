@@ -2,11 +2,11 @@ module Matrix exposing (nRows, nCols, location, indexTuple)
 
 
 nRows =
-    32
+    40
 
 
 nCols =
-   32
+   40
 
 location : Int -> Int -> Int
 location row col =
