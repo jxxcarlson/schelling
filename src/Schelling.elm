@@ -297,22 +297,22 @@ inputSequence n rands =
 --
 -- MEASURES
 --
---
---numberOccupied : Array Cell -> Int
---numberOccupied cellArray =
---   cellArray
---     |> Array.filter (\cell -> occupied cell)
---     |> Array.length
 
 numberOccupied : Array Cell -> Int
 numberOccupied cellArray =
-    let folder cell count =
-            if occupied cell then
-                1 + count
-            else
-                count
-    in
-        Array.foldl folder 0 cellArray
+   cellArray
+     |> Array.filter (\cell -> occupied cell)
+     |> Array.length
+
+--numberOccupied : Array Cell -> Int
+--numberOccupied cellArray =
+--    let folder cell count =
+--            if occupied cell then
+--                1 + count
+--            else
+--                count
+--    in
+--        Array.foldl folder 0 cellArray
 
 fractionSatisfied : Array Cell -> Float
 fractionSatisfied cellArray =
