@@ -1,4 +1,8 @@
-module Schelling exposing (
+module Schelling exposing (..)
+
+
+
+{- (
    Cell
    , nRows
    , nCols
@@ -8,6 +12,7 @@ module Schelling exposing (
    , fractionSatisfied
    , renderAsHtml
   )
+ -}
 
 import Array exposing (Array)
 import Svg exposing(Svg, svg, rect, g)
@@ -189,15 +194,15 @@ nextEmotionalState : (Int,  Int) -> Array Cell -> EmotionalState
 nextEmotionalState (row, col) array =
     let
         nbs =  neighbors (row, col) array
-        numberOfNeihbors = List.length nbs |> toFloat
+        numberOfNeighbors = List.length nbs |> toFloat
         me = get (row, col) array
         myThreshold = threshold me
         myIdentity = identity me
         myTribe = nbs |> List.filter (\cell -> identity cell == myIdentity)
         sizeOfMyTribe = toFloat (List.length myTribe)
-        ratio_ = sizeOfMyTribe / numberOfNeihbors
+        ratioOfLikeMe = sizeOfMyTribe / numberOfNeighbors
     in
-       case ratio_ < myThreshold  of
+       case ratioOfLikeMe < myThreshold  of
            True -> Unsatisfied
            False -> Satisfied
 
@@ -215,6 +220,15 @@ fractionLikeMe (row, col) array =
         sizeOfMyTribe = toFloat (List.length myTribe)
      in
         sizeOfMyTribe / numberOfNeighbors
+
+listFractionLikeMe : Array Cell -> List Float
+listFractionLikeMe cellArray =
+    let
+      n = Array.length cellArray
+      indices = List.range 0 (n - 1)
+      tuples = List.map matrixIndex indices
+    in
+      List.map (\tuple -> fractionLikeMe tuple cellArray) tuples
 
 --
 -- UPDATE

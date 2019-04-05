@@ -11,38 +11,48 @@ panel =
             [ el [ Font.bold, Font.size 18 ] (text "About the Schelling model")
             , paragraph []
                 [
-                   text """In 1971 Thomas Schelling formulated what is now called an agent-based model
-                   in an attempt to understand patterns of racial segregation. The model can be
-                   thought of in terms of a game.  There are two kinds of players, which are green and yellow
-                   in the case of the app on the left.  The players are distributed on grid,
-                   with certain percentage of the squares vacant — indicated in dark brown in the
-                   case of the app.  The players can be distributed in any way whatsoever; we have
-                   distributed them at random.
+                   text """In 1971, the economist Thomas Schelling formulated a simple model
+                   to help understand patterns of racial segregation. It can be
+                   thought of in terms of a game.  There are two kinds of players — green and yellow
+                   in the case of the app on the left.  The players are distributed on a grid,
+                   witha  certain percentage of the squares vacant — indicated here in dark reddish brown.
+                   The players can be distributed in any way whatsoever. We have
+                   placed them at random.
                    """
                 ]
 
             , paragraph [ ] [
                 el [Font.bold] (text "Rules of the game. ")
-                , text """Each player prefers that a certain percentage of his neighbors to be "like" him — perhaps
-                20% or 40%, for example.  If the percentage of neighbors like a given players,
-                 is too small, the player becomes "uncomfortable"
-                and will move to a vacant square when his turn comes.  In one round of the game, each player
-                (at random) asseses his comfort level and either moves or stays in place.  There is no cooperation
-                among players and there is no central control; each acts independently according simple rules.
-                 In the case at hand the rule depends on a single number, the percentage of neighbors like him.
+                , text """Each player prefers that a certain number of his neighbors be "like" him — perhaps
+                2 or 3, for example.  If the number of neighbors like a given players
+                 is too small (under the threshold), the player becomes "uncomfortable"
+                and will move to a vacant square when his turn comes.  A round of the game is played by first
+                lining up the players in a random order, then having them play in turn.
+                Each player  determines his comfort level and either
+                moves or stays in place.  There is no cooperation
+                among players and there is no central control; each player acts independently according simple rules.
+                 In the case at hand the rule depends only on the identities of a player's neighbors.
                  Perhaps surprisingly,
-                these "micro" behaviors can lead to "macro" effect, e.g, spontaneous formation of homogeneous
+                these "micro" behaviors can produce "macro" effects, e.g, spontaneous formation of homogeneous
                 neighborhoods.
-                  """]
+                  """
+                  , el [Font.color (rgb 0 0 1)] (text " <Scroll down>")
+                  ]
+
             , paragraph
                 [] [
-                el [Font.bold] (text "The app")
+                el [Font.bold] (text "The app. ")
                  , text
-                    """Tha app is based on simple notion of "neighbors." Unless a player is on the edge of the board,
-                    he has eight immediate neighbors.  Players are distributed on a 40x40 grid.  There are two full
-                    rounds of play each second.  It is written in Elm, a language of pure functions.
+                    """Neighbors are those players living immediately to the North, South, East,
+                    and West of a given player, plus those in the adjacent corners.
+                    Players are distributed on a 40x40 grid, and two full
+                    rounds are played each second.  Schelling played his first "game" on a large
+                    cardboard grid with coins that were moved around according the to rules.
+                    The game took months to play.  The app you see on the left is written in Elm,
+                    a language of pure functions.
                                      """
                     ]
+
             , paragraph
                 [spacing 12]
                 [  el [Font.bold] (text "References")
@@ -62,7 +72,7 @@ panel =
                         { url ="https://www.stat.berkeley.edu/%7Ealdous/157/Papers/Schelling_Seg_Models.pdf"
                          , label = el [] (text "Schelling's original article") })
                  , el [] (newTabLink [Font.color (rgb 0 0 1)]
-                        { url ="https://elm-lang.ord"
+                        { url ="https://elm-lang.org"
                           , label = el [] (text "Elm-lang.org") })
                  , el [] (newTabLink [Font.color (rgb 0 0 1)]
                        { url ="https://github.com/jxxcarlson/schelling"

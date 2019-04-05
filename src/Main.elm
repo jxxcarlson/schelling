@@ -36,7 +36,7 @@ type alias Model =
     , output : String
     , cells : Array Cell
     , threshold : Float
-    , preferenceString : String
+    , numberLikeMeString : String
     , fractionUnoccupiedString : String
     , fractionUnoccupied : Float
     , fractionA : Float
@@ -55,7 +55,7 @@ init flags =
       , output = "App started"
       , cells = Schelling.initialize 0.4 0.1 0.5 (Utility.orbit Utility.ff (2*nRows*nCols) 23)
       , threshold = 0.4
-      , preferenceString = "40"
+      , numberLikeMeString = "3"
       , fractionUnoccupied = 0.1
       , fractionUnoccupiedString = "10"
       , fractionA = 0.5
@@ -100,8 +100,8 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        InputThreshold preferenceString ->
-            ( { model | preferenceString = preferenceString, threshold = (stringToFloat preferenceString 40)/100.0 }, Cmd.none )
+        InputThreshold numberLikeMeString ->
+            ( { model | numberLikeMeString = numberLikeMeString, threshold = (stringToFloat numberLikeMeString 0)/8.0 }, Cmd.none )
 
         InputFractionUnoccupied str ->
                     ( { model | fractionUnoccupiedString = str
@@ -202,9 +202,9 @@ inputTreshold : Model -> Element Msg
 inputTreshold model =
     Input.text [Font.size 12, height (px 24), width (px 50)]
         { onChange = InputThreshold
-        , text = model.preferenceString
+        , text = model.numberLikeMeString
         , placeholder = Nothing
-        , label = Input.labelLeft [] <| el [moveDown 8] (text "Similar (%): ")
+        , label = Input.labelLeft [] <| el [moveDown 8] (text "Like me   (1-8): ")
         }
 
 inputFractionOccupied : Model -> Element Msg
