@@ -304,6 +304,9 @@ inputSequence n rands =
 --     |> Array.filter (\cell -> occupied cell)
 --     |> Array.length
 
+{-| Folkert's optimization, see
+ https://gist.github.com/jxxcarlson/2b028fe107e0668d30a15b560d7ce3c3
+ -}
 numberOccupied : Array Cell -> Int
 numberOccupied cellArray =
     let folder cell count =
@@ -324,6 +327,9 @@ numberOccupied cellArray =
 --    |> Array.length
 --    |> (\n -> (toFloat n)/nOccupied)
 
+{-| Folkert's optimization, see
+ https://gist.github.com/jxxcarlson/2b028fe107e0668d30a15b560d7ce3c3
+ -}
 fractionSatisfied : Array Cell -> Float
 fractionSatisfied cellArray =
     let
