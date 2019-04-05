@@ -204,7 +204,7 @@ inputTreshold model =
         { onChange = InputThreshold
         , text = model.numberLikeMeString
         , placeholder = Nothing
-        , label = Input.labelLeft [] <| el [moveDown 8] (text "Like me   (1-8): ")
+        , label = Input.labelLeft [] <| el [moveDown 8] (text "Like me (1-8): ")
         }
 
 inputFractionOccupied : Model -> Element Msg
