@@ -13,9 +13,9 @@ panel =
                 [
                    text """In 1971, the economist Thomas Schelling formulated a simple model
                    to help understand patterns of racial segregation. It can be
-                   thought of in terms of a game.  There are two kinds of players — green and yellow
+                   thought of in terms of a game.  There are two kinds of players — light and dark blue
                    in the case of the app on the left.  The players are distributed on a grid,
-                   witha  certain percentage of the squares vacant — indicated here in dark reddish brown.
+                   witha  certain percentage of the squares vacant — indicated here in a shade of black.
                    The players can be distributed in any way whatsoever. We have
                    placed them at random.
                    """

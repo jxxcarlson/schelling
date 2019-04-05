@@ -22,6 +22,7 @@ import Array.Extra
 import List.Extra
 import Utility
 import Cards
+import Colorbrewer.Qualitative
 
 
 cellSize = 8
@@ -425,9 +426,9 @@ renderCell : Array Cell -> (Int, Int)  -> Svg msg
 renderCell cellArray (row, col)  =
     let
          color = case get (row, col) cellArray |> identity of
-             Red -> "rgb(255, 184, 77)"
-             Blue -> "rgb(204, 204, 0)"
-             IUndefined -> "rgb(115, 38, 38)"
+             Red -> "rgb(166 206 227)"
+             Blue -> "rgb(31, 120, 180)"
+             IUndefined -> "rgb(40, 40, 40)"
      in
        gridRect cellSize color (row, col)
 
@@ -440,6 +441,17 @@ gridRect size color (row, col) =
         , SA.y <| String.fromFloat <| size*(toFloat row)
         , SA.fill color
         , SA.strokeWidth "1"
-        , SA.stroke "black"
+        , SA.stroke "rgb(25, 55, 125)"
         ]
         []
+
+{-
+
+
+"rgb(166 206 227)"    -- paired3_0 -- light blue
+"rgb(31, 120, 180)"  -- paired3_1 -- dark blue
+"rgb(178, 223, 138)"  -- paired_3_1 -- light green
+
+
+
+-}
