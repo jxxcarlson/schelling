@@ -1,0 +1,1 @@
+ag -l | entr make
