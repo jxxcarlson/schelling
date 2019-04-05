@@ -1,4 +1,4 @@
-module SchellingApp exposing (main)
+module Main exposing (main)
 
 {- This is a starter app which presents a text label, text field, and a button.
    What you enter in the text field is echoed in the label.  When you press the
@@ -17,8 +17,9 @@ import Array exposing(Array)
 import Time exposing(Posix)
 import Random
 import Utility
+import Text
 
-
+tickInterval = 500
 
 
 main =
@@ -35,7 +36,8 @@ type alias Model =
     , output : String
     , cells : Array Cell
     , threshold : Float
-    , thresholdString : String
+    , preferenceString : String
+    , fractionUnoccupiedString : String
     , fractionUnoccupied : Float
     , fractionA : Float
     , tickCount : Int
@@ -53,8 +55,9 @@ init flags =
       , output = "App started"
       , cells = Schelling.initialize 0.4 0.1 0.5 (Utility.orbit Utility.ff (2*nRows*nCols) 23)
       , threshold = 0.4
-      , thresholdString = "0.4"
+      , preferenceString = "40"
       , fractionUnoccupied = 0.1
+      , fractionUnoccupiedString = "10"
       , fractionA = 0.5
       , tickCount = 0
       , randomNumber = 0
@@ -68,6 +71,7 @@ init flags =
 type Msg
     = NoOp
     | InputThreshold String
+    | InputFractionUnoccupied String
     | UpdateModel
     | Tick Posix
     | NewRandomNumbers (List Int)
@@ -82,8 +86,12 @@ type alias Flags =
 
 
 subscriptions model =
-    Time.every 1000 Tick
+    Time.every tickInterval Tick
 
+
+stringToFloat : String -> Float -> Float
+stringToFloat str default =
+    String.toFloat str |> Maybe.withDefault default
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -92,8 +100,12 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        InputThreshold str ->
-            ( { model | thresholdString = str, threshold = String.toFloat str |> Maybe.withDefault 0.4}, Cmd.none )
+        InputThreshold preferenceString ->
+            ( { model | preferenceString = preferenceString, threshold = (stringToFloat preferenceString 40)/100.0 }, Cmd.none )
+
+        InputFractionUnoccupied str ->
+                    ( { model | fractionUnoccupiedString = str
+                         , fractionUnoccupied = (stringToFloat str 10)/100.0 }, Cmd.none )
 
         UpdateModel ->
             (  model , Cmd.none )
@@ -122,11 +134,11 @@ update msg model =
 
         Reset ->
             ( {model | cells = Schelling.initialize
-                                 model.threshold
+                                model.threshold
                                  model.fractionUnoccupied
                                  model.fractionA
                                  (Utility.orbit Utility.ff (2*nRows*nCols) 23)
-              , tickCount = 0, appState = Stop}, Cmd.none)
+                          , tickCount = 0, appState = Stop}, Cmd.none)
 
 
 
@@ -142,22 +154,38 @@ view model =
 
 mainColumn : Model -> Element Msg
 mainColumn model =
-    column mainColumnStyle
-        [ column [ spacing 20 ]
-            [ title "Schelling model"
-            , column [moveRight 40, moveDown 10] [Schelling.renderAsHtml model.cells |> Element.html]
-            ]
-            , row [spacing 12, moveUp 12] [ goButton  model, resetButton, inputText model]
-            , row [spacing 12] [
+    row [ spacing 24, centerX, centerY ] [appPanel model, Text.panel]
 
-                el [Font.size 14, width labelWidth] (text <| "cycle: " ++ String.fromInt model.tickCount)
-               , el [Font.size 14, width labelWidth]
-                   (text <| "satisfied: "
-                      ++ (String.fromFloat <| Utility.roundTo 1 <| 100*(Schelling.fractionSatisfied model.cells))++"%")
-              ]
-         ]
 
-labelWidth = (px 120)
+appPanel : Model -> Element Msg
+appPanel model =
+    column mainColumnStyle [
+                 title "Schelling model"
+                , display model
+                , controls model
+                , indicators model
+             ]
+
+
+
+display : Model-> Element Msg
+display model =
+  column [moveRight 40, moveDown 20] [Schelling.renderAsHtml model.cells |> Element.html]
+
+controls : Model -> Element Msg
+controls model =
+    row [spacing 12, moveUp 12] [ goButton  model, resetButton, inputTreshold model, inputFractionOccupied model]
+
+indicators : Model -> Element Msg
+indicators model =
+    row [spacing 18] [
+                    el [Font.size 14] (text <| "cycle: " ++ String.fromInt model.tickCount)
+                   , el [Font.size 14]
+                       (text <| "satisfied: "
+                          ++ (String.fromFloat <| Utility.roundTo 1 <| 100*(Schelling.fractionSatisfied model.cells))++"%")
+                  ]
+
+labelWidth = (px 80)
 
 title : String -> Element msg
 title str =
@@ -170,15 +198,23 @@ outputDisplay model =
         [ text model.output ]
 
 
-inputText : Model -> Element Msg
-inputText model =
-    Input.text [Font.size 12, height (px 24), width (px 60)]
+inputTreshold : Model -> Element Msg
+inputTreshold model =
+    Input.text [Font.size 12, height (px 24), width (px 50)]
         { onChange = InputThreshold
-        , text = model.thresholdString
+        , text = model.preferenceString
         , placeholder = Nothing
-        , label = Input.labelLeft [] <| el [moveDown 8] (text "Threshold")
+        , label = Input.labelLeft [] <| el [moveDown 8] (text "Similar (%): ")
         }
 
+inputFractionOccupied : Model -> Element Msg
+inputFractionOccupied model =
+    Input.text [Font.size 12, height (px 24), width (px 50)]
+        { onChange = InputFractionUnoccupied
+        , text = model.fractionUnoccupiedString
+        , placeholder = Nothing
+        , label = Input.labelLeft [] <| el [moveDown 8] (text "Empty (%): ")
+        }
 
 goButton : Model -> Element Msg
 goButton model =
@@ -213,9 +249,7 @@ goButtonLabel model =
 
 
 mainColumnStyle =
-    [ centerX
-    , centerY
-    , Background.color (rgb255 240 240 240)
+    [  Background.color (rgb255 240 240 240)
     , paddingXY 20 20
     ]
 

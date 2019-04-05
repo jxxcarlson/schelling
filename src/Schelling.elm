@@ -39,8 +39,8 @@ and matrixIndex are used to work with
 such arrays as if they were matrices.
 -}
 
-location : Int -> Int -> Int
-location row col =
+location :(Int,  Int) -> Int
+location (row, col) =
     nRows * row + col
 
 matrixIndex : Int -> (Int, Int)
@@ -140,11 +140,11 @@ indexTupleOfCell cell cellArray =
 
 get : (Int, Int) -> Array Cell ->  Cell
 get (row, col) array =
-    Array.get (location row col) array |> Maybe.withDefault (Unoccupied <| Id -1)
+    Array.get (location (row, col)) array |> Maybe.withDefault (Unoccupied <| Id -1)
 
 set : (Int, Int) -> Cell -> Array Cell -> Array Cell
 set (row, col) cell cellArray =
-   Array.set (location row col) cell cellArray
+   Array.set (location (row ,col)) cell cellArray
 
 
 
@@ -164,15 +164,16 @@ neighborFilter ( a, b ) =
     a >= 0 && a < nRows && b >= 0 && b < nCols
 
 
-neighborIndices : Int -> Int -> List ( Int, Int )
-neighborIndices row col =
-    [ ( row - 1, col ), ( row + 1, col ), ( row, col - 1 ), ( row, col + 1 ) ]
+neighborIndices : (Int, Int) -> List ( Int, Int )
+neighborIndices (row, col) =
+    [ ( row - 1, col ), ( row + 1, col ), ( row, col - 1 ), ( row, col + 1 ),
+       (row - 1, col - 1), (row - 1, col + 1), (row + 1, col - 1), (row + 1, col - 1)]
         |> List.filter neighborFilter
 
 
-neighbors : Int -> Int -> Array Cell -> List Cell
-neighbors row col cellArray =
-    neighborIndices row col
+neighbors : (Int, Int) -> Array Cell -> List Cell
+neighbors (row, col) cellArray =
+    neighborIndices (row, col)
         |> List.map (\( r, c ) -> get (r, c) cellArray)
 
 
@@ -187,7 +188,7 @@ neighbors row col cellArray =
 nextEmotionalState : (Int,  Int) -> Array Cell -> EmotionalState
 nextEmotionalState (row, col) array =
     let
-        nbs =  neighbors row col array
+        nbs =  neighbors (row, col) array
         numberOfNeihbors = List.length nbs |> toFloat
         me = get (row, col) array
         myThreshold = threshold me
@@ -206,7 +207,7 @@ identity as the cell with given (row, col).
 fractionLikeMe : (Int, Int) -> Array Cell -> Float
 fractionLikeMe (row, col) array =
     let
-        nbs =  neighbors row col array
+        nbs =  neighbors (row, col) array
         numberOfNeighbors = List.length nbs |> toFloat
         me = get (row, col) array
         myIdentity = identity me
@@ -230,7 +231,7 @@ updateCell : (Int, Int) -> Array Cell -> Array Cell
 updateCell (idx, rand) cellArray =
     let
         (row, col) = matrixIndex idx
-        updatedCell = updateEmotionalStateOfCellAtIndex  row col cellArray
+        updatedCell = updateEmotionalStateOfCellAtIndex  (row, col) cellArray
     in
       if emotionalState updatedCell == Unsatisfied then
         swapWithUnoccupiedCell rand updatedCell cellArray
@@ -239,11 +240,11 @@ updateCell (idx, rand) cellArray =
 
 
 
-updateEmotionalStateOfCellAtIndex : Int -> Int -> Array Cell -> Cell
-updateEmotionalStateOfCellAtIndex  row col cellArray =
+updateEmotionalStateOfCellAtIndex : (Int, Int) -> Array Cell -> Cell
+updateEmotionalStateOfCellAtIndex  (row, col) cellArray =
    let
        nextEmotionalState_ = nextEmotionalState (row, col) cellArray
-       currentCell = Array.get (location row col) cellArray |> Maybe.withDefault (Unoccupied (Id -1))
+       currentCell = Array.get (location (row, col)) cellArray |> Maybe.withDefault (Unoccupied (Id -1))
 
    in
       updateEmotionalState nextEmotionalState_ currentCell
@@ -382,10 +383,10 @@ renderCell cellArray (row, col)  =
              Blue -> "rgb(204, 204, 0)"
              IUndefined -> "rgb(115, 38, 38)"
      in
-       gridRect cellSize color row col
+       gridRect cellSize color (row, col)
 
-gridRect : Float -> String -> Int -> Int  -> Svg msg
-gridRect size color row col =
+gridRect : Float -> String -> (Int, Int)  -> Svg msg
+gridRect size color (row, col) =
     rect
         [ SA.width <| String.fromFloat size
         , SA.height <| String.fromFloat size
