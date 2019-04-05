@@ -298,33 +298,49 @@ inputSequence n rands =
 -- MEASURES
 --
 
-numberOccupied : Array Cell -> Int
-numberOccupied cellArray =
-   cellArray
-     |> Array.filter (\cell -> occupied cell)
-     |> Array.length
-
 --numberOccupied : Array Cell -> Int
 --numberOccupied cellArray =
---    let folder cell count =
---            if occupied cell then
---                1 + count
---            else
---                count
+--   cellArray
+--     |> Array.filter (\cell -> occupied cell)
+--     |> Array.length
+
+numberOccupied : Array Cell -> Int
+numberOccupied cellArray =
+    let folder cell count =
+            if occupied cell then
+                1 + count
+            else
+                count
+    in
+        Array.foldl folder 0 cellArray
+
+--fractionSatisfied : Array Cell -> Float
+--fractionSatisfied cellArray =
+--    let
+--       nOccupied = numberOccupied cellArray |> toFloat
 --    in
---        Array.foldl folder 0 cellArray
+--   cellArray
+--    |> Array.filter  (\cell -> emotionalState cell == Satisfied)
+--    |> Array.length
+--    |> (\n -> (toFloat n)/nOccupied)
 
 fractionSatisfied : Array Cell -> Float
 fractionSatisfied cellArray =
     let
-       nOccupied = numberOccupied cellArray |> toFloat
+      folder : Cell -> (Int, Int) -> (Int, Int)
+      folder cell (occupied2, satisfied) =
+            case cell of
+                Unoccupied _ ->
+                    -- no changes
+                    ( occupied2, satisfied )
+
+                Occupied _ _ _ emotion ->
+                    ( occupied2 + 1
+                    , if emotion == Satisfied then satisfied + 1 else satisfied
+                    )
     in
-   cellArray
-    |> Array.filter  (\cell -> emotionalState cell == Satisfied)
-    |> Array.length
-    |> (\n -> (toFloat n)/nOccupied)
-
-
+        Array.foldl folder (0, 0) cellArray
+            |> (\(occupied3, satisfied) -> toFloat satisfied / toFloat occupied3)
 --
 -- CONSTRUCTORS
 --
