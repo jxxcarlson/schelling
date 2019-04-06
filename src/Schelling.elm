@@ -34,10 +34,10 @@ cellSize = 8
 --
 
 nRows =
-    10
+    40
 
 nCols =
-    10
+    40
 
 
 {- I am using 1D Arrays, so location

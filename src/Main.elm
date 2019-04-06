@@ -19,7 +19,7 @@ import Random
 import Utility
 import Text
 
-tickInterval = 250
+tickInterval = 50
 
 
 main =

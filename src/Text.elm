@@ -46,7 +46,7 @@ panel =
                     """Neighbors are those players living immediately to the North, South, East,
                     and West of a given player, plus those in the adjacent corners.
                     Players are distributed on a 40x40 grid, and a new round is played
-                    every 250 milliseconds.  Schelling played his first "game" on a large
+                    every 50 milliseconds.  Schelling played his first "game" on a large
                     cardboard grid with coins that were moved around according the to rules.
                     The game took months to play.  The app you see on the left is written in Elm,
                     a language of pure functions.
