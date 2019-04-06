@@ -62,10 +62,9 @@ type Cell
     = Occupied CellIndex Id Threshold Identity EmotionalState
     | Unoccupied CellIndex Id
 
+type CellIndex = CellIndex Int
 
 type Id = Id Int
-
-type CellIndex = CellIndex Int
 
 type Threshold
     = Threshold Float
