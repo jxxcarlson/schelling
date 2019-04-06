@@ -34,10 +34,10 @@ cellSize = 8
 --
 
 nRows =
-    7
+    10
 
 nCols =
-   7
+    10
 
 
 {- I am using 1D Arrays, so location
@@ -59,11 +59,13 @@ matrixIndex n =
 
 {-| Cell and Array Cell are the basic data structures.  T -}
 type Cell
-    = Occupied Id Threshold Identity EmotionalState
-    | Unoccupied Id
+    = Occupied CellIndex Id Threshold Identity EmotionalState
+    | Unoccupied CellIndex Id
 
 
 type Id = Id Int
+
+type CellIndex = CellIndex Int
 
 type Threshold
     = Threshold Float
@@ -75,89 +77,94 @@ type Identity
     | Blue
     | IUndefined
 
-
+defaultCell = Unoccupied (CellIndex -1) (Id -1)
 
 identity : Cell -> Identity
 identity cell =
     case cell of
-        Unoccupied _ -> IUndefined
-        Occupied _ _ ident_ _ -> ident_
+        Unoccupied _ _ -> IUndefined
+        Occupied _ _ _ ident_ _ -> ident_
 
 
 emotionalState : Cell -> EmotionalState
 emotionalState cell =
    case cell of
-        Unoccupied _ -> EUndefined
-        Occupied _ _ _ e -> e
+        Unoccupied _  _ -> EUndefined
+        Occupied _ _ _ _ e -> e
 
 updateEmotionalState : EmotionalState -> Cell -> Cell
 updateEmotionalState emotionalState_ cell =
     case cell of
-        Unoccupied _ -> cell
-        Occupied (Id k) (Threshold t) ident es -> Occupied (Id k) (Threshold t) ident emotionalState_
+        Unoccupied _ _ -> cell
+        Occupied (CellIndex j) (Id k) (Threshold t) ident es -> Occupied (CellIndex j) (Id k) (Threshold t) ident emotionalState_
+
+setCellIndex : Int -> Cell -> Cell
+setCellIndex j cell =
+    case cell of
+        Unoccupied _ (Id k) -> Unoccupied (CellIndex j) (Id k)
+        Occupied _ (Id k) (Threshold t) ident es -> Occupied (CellIndex j) (Id k) (Threshold t) ident es
+
 
 threshold : Cell -> Float
 threshold cell =
    case cell of
-        Unoccupied _ -> 0
-        Occupied _ (Threshold t) _ _-> t
+        Unoccupied _ _ -> 0
+        Occupied _ _ (Threshold t) _ _-> t
 
 occupied : Cell -> Bool
 occupied cell =
     case cell of
-        Occupied _ _ _ _->
+        Occupied _ _ _ _ _->
             True
 
-        Unoccupied _ ->
+        Unoccupied _ _ ->
             False
 
 id : Cell -> Int
 id cell =
     case cell of
-        Unoccupied (Id k) -> k
-        Occupied (Id k) _ _ _ -> k
+        Unoccupied _ (Id k) -> k
+        Occupied _ (Id k) _ _ _ -> k
+
+idx : Cell -> Int
+idx cell =
+    case cell of
+        Unoccupied (CellIndex k) _ -> k
+        Occupied (CellIndex k) _ _ _ _ -> k
 
 
-{-| Return index of a cell in an array of cells,  Returns -1 if the cell is not there-}
-index : Cell -> Array Cell -> Int
-index cell cellArray =
-    let
-      (status, idx) = Array.foldl (indexAux cell) (False, -1) cellArray
-    in
-      if status == True then
-        idx
-      else
-         -1
 
 
-indexAux : Cell -> Cell -> (Bool, Int) -> (Bool, Int)
-indexAux givenCell cell state =
-    if (id givenCell) == (id cell) then
-      (True, (Tuple.second state) + 1)
-    else if Tuple.first state == False then
-      (False, (Tuple.second state) + 1)
-    else
-      state
+indexTupleOfCell : Cell -> (Int, Int)
+indexTupleOfCell cell =
+  case cell of
+          Unoccupied (CellIndex j) (Id k) -> (j, k)
+          Occupied (CellIndex j) (Id k) _ _ _ -> (j, k)
 
-
-indexTupleOfCell : Cell -> Array Cell -> (Int, Int)
-indexTupleOfCell cell cellArray =
-   index cell cellArray |> matrixIndex
 
 get : (Int, Int) -> Array Cell ->  Cell
 get (row, col) array =
-    Array.get (location (row, col)) array |> Maybe.withDefault (Unoccupied <| Id -1)
+    Array.get (location (row, col)) array |> Maybe.withDefault defaultCell
 
+{-| set is only used in swapWithUnoccupiedCell
+ where care is taken to properly update (swap) the
+ cell indices.  It would be better not to have this
+ funtoin.
+ -}
 set : (Int, Int) -> Cell -> Array Cell -> Array Cell
 set (row, col) cell cellArray =
    Array.set (location (row ,col)) cell cellArray
 
 
+setWithIndex : Int -> Cell -> Array Cell -> Array Cell
+setWithIndex j cell cellArray =
+   Array.set j cell cellArray
+
 
 {-| Replace the cell with id equal to the given cell by the given cell -}
 replace : Cell -> Array Cell -> Array Cell
 replace cell cellArray =
-    Array.set (index cell cellArray) cell cellArray
+    Array.set (idx cell) cell cellArray
 
 
 
@@ -243,9 +250,9 @@ updateCells tupleList cellArray =
 
 
 updateCell : (Int, Int) -> Array Cell -> Array Cell
-updateCell (idx, rand) cellArray =
+updateCell (i, rand) cellArray =
     let
-        (row, col) = matrixIndex idx
+        (row, col) = matrixIndex i
         updatedCell = updateEmotionalStateOfCellAtIndex  (row, col) cellArray
     in
       if emotionalState updatedCell == Unsatisfied then
@@ -259,7 +266,7 @@ updateEmotionalStateOfCellAtIndex : (Int, Int) -> Array Cell -> Cell
 updateEmotionalStateOfCellAtIndex  (row, col) cellArray =
    let
        nextEmotionalState_ = nextEmotionalState (row, col) cellArray
-       currentCell = Array.get (location (row, col)) cellArray |> Maybe.withDefault (Unoccupied (Id -1))
+       currentCell = Array.get (location (row, col)) cellArray |> Maybe.withDefault defaultCell
 
    in
       updateEmotionalState nextEmotionalState_ currentCell
@@ -272,13 +279,20 @@ swapWithUnoccupiedCell randomNumber cell cellArray =
           |> Array.filter (\cell_ -> not <| occupied cell_)
 
        i = modBy (Array.length unoccupiedSites) randomNumber
-       unoccupiedSite = Array.get i unoccupiedSites |> Maybe.withDefault (Unoccupied (Id -1))
-       idxTupleCell = indexTupleOfCell cell cellArray
-       idxUnoccupied = indexTupleOfCell unoccupiedSite cellArray
+       unoccupiedCell= Array.get i unoccupiedSites |> Maybe.withDefault defaultCell
      in
-     cellArray
-       |> set idxUnoccupied cell
-       |> set idxTupleCell unoccupiedSite
+     swapCells cell unoccupiedCell cellArray
+
+swapCells : Cell -> Cell -> Array Cell -> Array Cell
+swapCells cell1 cell2 cellArray =
+    let
+       idx1 = idx cell1
+       idx2 = idx cell2
+    in
+    cellArray
+      |> setWithIndex idx2 (setCellIndex idx2 cell1)
+      |> setWithIndex idx1 (setCellIndex idx1 cell2)
+
 
 
 {-| This function constructs a list of tuples
@@ -336,11 +350,11 @@ fractionSatisfied cellArray =
       folder : Cell -> (Int, Int) -> (Int, Int)
       folder cell (occupied2, satisfied) =
             case cell of
-                Unoccupied _ ->
+                Unoccupied _ _ ->
                     -- no changes
                     ( occupied2, satisfied )
 
-                Occupied _ _ _ emotion ->
+                Occupied _ _ _ _ emotion ->
                     ( occupied2 + 1
                     , if emotion == Satisfied then satisfied + 1 else satisfied
                     )
@@ -359,25 +373,25 @@ initialize threshold_ probabilityOfUnoccupied probabilityOfRed randomNumbers =
     let
        n = nRows*nCols
        idList = List.range 0 (n-1)
+       idList2 = List.map2 Tuple.pair idList idList
        rands = Utility.pad (2*n) randomNumbers
        (a,b) = List.Extra.splitAt n rands
        randTuples = List.map2 Tuple.pair a b
-       tupleList = List.map2 Tuple.pair idList randTuples
     in
-    List.map (cellFromTuple threshold_ probabilityOfUnoccupied probabilityOfRed) tupleList
+    List.map2 (cellFromTuple threshold_ probabilityOfUnoccupied probabilityOfRed) idList2 randTuples
       |> Array.fromList
 
 
 
 {-| Construct a cell from given data -}
-cellFromTuple : Float -> Float -> Float -> (Int, (Float, Float)) -> Cell
-cellFromTuple threshold_ probabilityOfUnoccupied probabilityOfRed (id_, (pU,pR)) =
+cellFromTuple : Float -> Float -> Float -> (Int,Int) -> (Float, Float) -> Cell
+cellFromTuple threshold_ probabilityOfUnoccupied probabilityOfRed (index_, id_) (pU,pR) =
     if pU <= probabilityOfUnoccupied then
-      Unoccupied (Id id_)
+      Unoccupied (CellIndex index_) (Id id_)
     else if pR  <= probabilityOfRed then
-      Occupied (Id id_) (Threshold threshold_) Red Satisfied
+      Occupied (CellIndex index_) (Id id_) (Threshold threshold_) Red Satisfied
     else
-      Occupied (Id id_) (Threshold threshold_) Blue Satisfied
+      Occupied (CellIndex index_) (Id id_) (Threshold threshold_) Blue Satisfied
 
 
 
