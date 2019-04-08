@@ -10,8 +10,8 @@ import Utility
 testModel = {
    nRows = 32
   , nCols = 32
-  , threshold = 3
-  , probabilityOfUnoccupied = 0.4
+  , threshold = 0.4
+  , probabilityOfUnoccupied = 0.1
   , probabilityOfRed = 0.5
   , cellSize = 8
  }
