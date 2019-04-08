@@ -25,33 +25,37 @@ import Cards
 import Colorbrewer.Qualitative
 
 
-cellSize = 8
+type alias Model = {
+     nRows : Int
+   , nCols : Int
+   , threshold : Float
+   , probabilityOfUnoccupied : Float
+   , probabilityOfRed : Float
+   , cellSize : Float
 
+  }
 
-
---
--- MATRIX STUFF
---
-
-nRows =
-    40
-
-nCols =
-    40
-
+defaultModel = {
+   nRows = 32
+  , nCols = 32
+  , threshold = 3
+  , probabilityOfUnoccupied = 0.1
+  , probabilityOfRed = 0.5
+  , cellSize = 8
+ }
 
 {- I am using 1D Arrays, so location
 and matrixIndex are used to work with
 such arrays as if they were matrices.
 -}
 
-location :(Int,  Int) -> Int
-location (row, col) =
-    nRows * row + col
+location : Model -> (Int,  Int) -> Int
+location model (row, col) =
+    model.nRows * row + col
 
-matrixIndex : Int -> (Int, Int)
-matrixIndex n =
-    (n // nCols, modBy nCols n)
+matrixIndex : Model -> Int -> (Int, Int)
+matrixIndex model  n =
+    (n // model.nCols, modBy model.nCols n)
 
 --
 -- Cells
@@ -141,18 +145,18 @@ indexTupleOfCell cell =
           Occupied (CellIndex j) (Id k) _ _ _ -> (j, k)
 
 
-get : (Int, Int) -> Array Cell ->  Cell
-get (row, col) array =
-    Array.get (location (row, col)) array |> Maybe.withDefault defaultCell
+get : Model -> (Int, Int) -> Array Cell ->  Cell
+get model (row, col) array =
+    Array.get (location model (row, col)) array |> Maybe.withDefault defaultCell
 
 {-| set is only used in swapWithUnoccupiedCell
  where care is taken to properly update (swap) the
  cell indices.  It would be better not to have this
  funtoin.
  -}
-set : (Int, Int) -> Cell -> Array Cell -> Array Cell
-set (row, col) cell cellArray =
-   Array.set (location (row ,col)) cell cellArray
+set : Model -> (Int, Int) -> Cell -> Array Cell -> Array Cell
+set model (row, col) cell cellArray =
+   Array.set (location model (row ,col)) cell cellArray
 
 
 setWithIndex : Int -> Cell -> Array Cell -> Array Cell
@@ -171,22 +175,22 @@ replace cell cellArray =
 -- NEIGHBORS
 --
 
-neighborFilter : ( Int, Int ) -> Bool
-neighborFilter ( a, b ) =
-    a >= 0 && a < nRows && b >= 0 && b < nCols
+neighborFilter : Model -> ( Int, Int ) -> Bool
+neighborFilter model ( a, b ) =
+    a >= 0 && a < model.nRows && b >= 0 && b < model.nCols
 
 
-neighborIndices : (Int, Int) -> List ( Int, Int )
-neighborIndices (row, col) =
+neighborIndices : Model -> (Int, Int) -> List ( Int, Int )
+neighborIndices model (row, col) =
     [ ( row - 1, col ), ( row + 1, col ), ( row, col - 1 ), ( row, col + 1 ),
        (row - 1, col - 1), (row - 1, col + 1), (row + 1, col - 1), (row + 1, col - 1)]
-        |> List.filter neighborFilter
+        |> List.filter (neighborFilter model)
 
 
-neighbors : (Int, Int) -> Array Cell -> List Cell
-neighbors (row, col) cellArray =
-    neighborIndices (row, col)
-        |> List.map (\( r, c ) -> get (r, c) cellArray)
+neighbors : Model -> (Int, Int) -> Array Cell -> List Cell
+neighbors model (row, col) cellArray =
+    neighborIndices model (row, col)
+        |> List.map (\( r, c ) -> get model (r, c) cellArray)
 
 
 --
@@ -197,12 +201,12 @@ neighbors (row, col) cellArray =
 {-| Compute the next emotional state of the cell at (row, col)
 
 -}
-nextEmotionalState : (Int,  Int) -> Array Cell -> EmotionalState
-nextEmotionalState (row, col) array =
+nextEmotionalState : Model -> (Int,  Int) -> Array Cell -> EmotionalState
+nextEmotionalState model (row, col) array =
     let
-        nbs =  neighbors (row, col) array
+        nbs =  neighbors model (row, col) array
         numberOfNeighbors = List.length nbs |> toFloat
-        me = get (row, col) array
+        me = get model (row, col) array
         myThreshold = threshold me
         myIdentity = identity me
         myTribe = nbs |> List.filter (\cell -> identity cell == myIdentity)
@@ -216,26 +220,26 @@ nextEmotionalState (row, col) array =
 {-| Compute the fraction of occupied cells that have the same
 identity as the cell with given (row, col).
 -}
-fractionLikeMe : (Int, Int) -> Array Cell -> Float
-fractionLikeMe (row, col) array =
+fractionLikeMe : Model -> (Int, Int) -> Array Cell -> Float
+fractionLikeMe model (row, col) array =
     let
-        nbs =  neighbors (row, col) array
+        nbs =  neighbors model (row, col) array
         numberOfNeighbors = List.length nbs |> toFloat
-        me = get (row, col) array
+        me = get model (row, col) array
         myIdentity = identity me
         myTribe = nbs |> List.filter (\cell -> identity cell == myIdentity)
         sizeOfMyTribe = toFloat (List.length myTribe)
      in
         sizeOfMyTribe / numberOfNeighbors
 
-listFractionLikeMe : Array Cell -> List Float
-listFractionLikeMe cellArray =
+listFractionLikeMe : Model -> Array Cell -> List Float
+listFractionLikeMe model cellArray =
     let
       n = Array.length cellArray
       indices = List.range 0 (n - 1)
-      tuples = List.map matrixIndex indices
+      tuples = List.map (matrixIndex model) indices
     in
-      List.map (\tuple -> fractionLikeMe tuple cellArray) tuples
+      List.map (\tuple -> fractionLikeMe model tuple cellArray) tuples
 
 --
 -- UPDATE
@@ -243,16 +247,16 @@ listFractionLikeMe cellArray =
 
 
 
-updateCells : List (Int, Int) ->  Array Cell -> Array Cell
-updateCells tupleList cellArray =
-    List.foldl updateCell cellArray tupleList
+updateCells : Model -> List (Int, Int) ->  Array Cell -> Array Cell
+updateCells model tupleList cellArray =
+    List.foldl (updateCell model) cellArray tupleList
 
 
-updateCell : (Int, Int) -> Array Cell -> Array Cell
-updateCell (i, rand) cellArray =
+updateCell : Model -> (Int, Int) -> Array Cell -> Array Cell
+updateCell model (i, rand) cellArray =
     let
-        (row, col) = matrixIndex i
-        updatedCell = updateEmotionalStateOfCellAtIndex  (row, col) cellArray
+        (row, col) = matrixIndex model i
+        updatedCell = updateEmotionalStateOfCellAtIndex  model (row, col) cellArray
     in
       if emotionalState updatedCell == Unsatisfied then
         swapWithUnoccupiedCell rand updatedCell cellArray
@@ -261,11 +265,11 @@ updateCell (i, rand) cellArray =
 
 
 
-updateEmotionalStateOfCellAtIndex : (Int, Int) -> Array Cell -> Cell
-updateEmotionalStateOfCellAtIndex  (row, col) cellArray =
+updateEmotionalStateOfCellAtIndex : Model -> (Int, Int) -> Array Cell -> Cell
+updateEmotionalStateOfCellAtIndex  model (row, col) cellArray =
    let
-       nextEmotionalState_ = nextEmotionalState (row, col) cellArray
-       currentCell = Array.get (location (row, col)) cellArray |> Maybe.withDefault defaultCell
+       nextEmotionalState_ = nextEmotionalState model (row, col) cellArray
+       currentCell = Array.get (location model (row, col)) cellArray |> Maybe.withDefault defaultCell
 
    in
       updateEmotionalState nextEmotionalState_ currentCell
@@ -298,9 +302,10 @@ swapCells cell1 cell2 cellArray =
   form a list of integers (intended to be
   randomly generated).  It is used as the first
   argument to the updateCells function. -}
-inputSequence : Int -> List Int -> List (Int, Int)
-inputSequence n rands =
+inputSequence : Model -> List Int -> List (Int, Int)
+inputSequence model rands =
     let
+        n = model.nRows * model.nCols
         rands1 = Utility.pad n rands
         rands2 = List.take (max 3 (n//10)) rands |> List.map (\k -> modBy n k)
         randomIndices = Cards.randomize rands2 (List.range 0 (n - 1))
@@ -367,30 +372,30 @@ fractionSatisfied cellArray =
 
 
 {-| Construct an array of Cells with given parameters -}
-initialize : Float -> Float -> Float -> List Float -> Array Cell
-initialize threshold_ probabilityOfUnoccupied probabilityOfRed randomNumbers =
+initialize : Model -> List Float -> Array Cell
+initialize model randomNumbers =
     let
-       n = nRows*nCols
+       n = model.nRows*model.nCols
        idList = List.range 0 (n-1)
        idList2 = List.map2 Tuple.pair idList idList
        rands = Utility.pad (2*n) randomNumbers
        (a,b) = List.Extra.splitAt n rands
        randTuples = List.map2 Tuple.pair a b
     in
-    List.map2 (cellFromTuple threshold_ probabilityOfUnoccupied probabilityOfRed) idList2 randTuples
+    List.map2 (cellFromTuple model) idList2 randTuples
       |> Array.fromList
 
 
 
 {-| Construct a cell from given data -}
-cellFromTuple : Float -> Float -> Float -> (Int,Int) -> (Float, Float) -> Cell
-cellFromTuple threshold_ probabilityOfUnoccupied probabilityOfRed (index_, id_) (pU,pR) =
-    if pU <= probabilityOfUnoccupied then
+cellFromTuple : Model -> (Int,Int) -> (Float, Float) -> Cell
+cellFromTuple model (index_, id_) (pU,pR) =
+    if pU <= model.probabilityOfUnoccupied then
       Unoccupied (CellIndex index_) (Id id_)
-    else if pR  <= probabilityOfRed then
-      Occupied (CellIndex index_) (Id id_) (Threshold threshold_) Red Satisfied
+    else if pR  <= model.probabilityOfRed then
+      Occupied (CellIndex index_) (Id id_) (Threshold model.threshold) Red Satisfied
     else
-      Occupied (CellIndex index_) (Id id_) (Threshold threshold_) Blue Satisfied
+      Occupied (CellIndex index_) (Id id_) (Threshold model.threshold) Blue Satisfied
 
 
 
@@ -414,35 +419,35 @@ diff cells1 cells2 =
 --
 
 
-renderAsHtml : Array Cell -> Html msg
-renderAsHtml cellArray =
+renderAsHtml : Model -> Array Cell -> Html msg
+renderAsHtml model cellArray =
     svg
         [  SA.height <| String.fromFloat 400
            , SA.width <| String.fromFloat 400
         , SA.viewBox <| "0 0 400 400"
         ]
-        [ renderAsSvg cellArray]
+        [ renderAsSvg model cellArray]
 
-renderAsSvg : Array Cell -> Svg msg
-renderAsSvg cellArray =
+renderAsSvg : Model -> Array Cell -> Svg msg
+renderAsSvg model cellArray =
     let
-        lastCellIndex = (nCols * nRows) - 1
+        lastCellIndex = (model.nCols * model.nRows) - 1
      in
        List.range 0 lastCellIndex
-         |> List.map matrixIndex
-         |> List.map (renderCell cellArray)
+         |> List.map (matrixIndex model)
+         |> List.map (renderCell model cellArray)
          |> g []
 
 
-renderCell : Array Cell -> (Int, Int)  -> Svg msg
-renderCell cellArray (row, col)  =
+renderCell : Model -> Array Cell -> (Int, Int)  -> Svg msg
+renderCell model cellArray (row, col)  =
     let
-         color = case get (row, col) cellArray |> identity of
+         color = case get model (row, col) cellArray |> identity of
              Red -> "rgb(166 206 227)"
              Blue -> "rgb(31, 120, 180)"
              IUndefined -> "rgb(40, 40, 40)"
      in
-       gridRect cellSize color (row, col)
+       gridRect model.cellSize color (row, col)
 
 gridRect : Float -> String -> (Int, Int)  -> Svg msg
 gridRect size color (row, col) =
@@ -456,14 +461,3 @@ gridRect size color (row, col) =
         , SA.stroke "rgb(25, 55, 125)"
         ]
         []
-
-{-
-
-
-"rgb(166 206 227)"    -- paired3_0 -- light blue
-"rgb(31, 120, 180)"  -- paired3_1 -- dark blue
-"rgb(178, 223, 138)"  -- paired_3_1 -- light green
-
-
-
--}

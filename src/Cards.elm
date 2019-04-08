@@ -4,11 +4,14 @@ import List.Extra
 
 cut : Int -> List a -> List a
 cut j list =
-   let
-       k = modBy (List.length list) j
-       (a, b) = List.Extra.splitAt k list
-    in
-      b ++ a
+   case list of
+       [] -> []
+       _ ->
+           let
+               k = modBy (List.length list) j
+               (a, b) = List.Extra.splitAt k list
+            in
+              b ++ a
 
 shuffle : List a -> List a
 shuffle list =

@@ -12,7 +12,7 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import Schelling exposing( Cell, nRows, nCols)
+import Schelling exposing( Cell)
 import Array exposing(Array)
 import Time exposing(Posix)
 import Random
@@ -35,6 +35,7 @@ type alias Model =
     { input : String
     , output : String
     , cells : Array Cell
+    , schellingModel : Schelling.Model
     , threshold : Float
     , numberLikeMeString : String
     , fractionUnoccupiedString : String
@@ -51,9 +52,13 @@ type AppState = Go | Stop
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
+  let
+    dm = Schelling.defaultModel
+  in
     ( { input = "App started"
       , output = "App started"
-      , cells = Schelling.initialize 0.4 0.1 0.5 (Utility.orbit Utility.ff (2*nRows*nCols) 23)
+      , cells = Schelling.initialize Schelling.defaultModel (Utility.orbit Utility.ff (2*dm.nRows*dm.nCols) 23)
+      , schellingModel = Schelling.defaultModel
       , threshold = 0.4
       , numberLikeMeString = "3"
       , fractionUnoccupied = 0.1
@@ -118,13 +123,16 @@ update msg model =
 
         NewRandomNumbers randList ->
             let
-                n = nRows*nCols - 1
+                sm = model.schellingModel
+                n = sm.nRows*sm.nCols - 1
             in
               if model.appState == Stop then
                  (model, Cmd.none)
               else
                 ({ model |
-                   cells = Schelling.updateCells (Schelling.inputSequence n randList) model.cells
+                   cells = Schelling.updateCells model.schellingModel
+                             (Schelling.inputSequence model.schellingModel randList)
+                             model.cells
                    }, Cmd.none)
 
         ToggleAppState ->
@@ -133,11 +141,11 @@ update msg model =
                 Go -> ( { model | appState = Stop}, Cmd.none )
 
         Reset ->
-            ( {model | cells = Schelling.initialize
-                                model.threshold
-                                 model.fractionUnoccupied
-                                 model.fractionA
-                                 (Utility.orbit Utility.ff (2*nRows*nCols) 23)
+            let
+                sm = model.schellingModel
+                smdm = model.schellingModel
+            in
+            ( {model | cells = Schelling.initialize sm (Utility.orbit Utility.ff (2*sm.nRows*sm.nCols) 23)
                           , tickCount = 0, appState = Stop}, Cmd.none)
 
 
@@ -170,7 +178,7 @@ appPanel model =
 
 display : Model-> Element Msg
 display model =
-  column [moveRight 40, moveDown 20] [Schelling.renderAsHtml model.cells |> Element.html]
+  column [moveRight 40, moveDown 20] [Schelling.renderAsHtml model.schellingModel model.cells |> Element.html]
 
 controls : Model -> Element Msg
 controls model =
