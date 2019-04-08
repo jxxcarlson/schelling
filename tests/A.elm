@@ -11,7 +11,7 @@ testModel = {
    nRows = 32
   , nCols = 32
   , threshold = 3
-  , probabilityOfUnoccupied = 0.1
+  , probabilityOfUnoccupied = 0.4
   , probabilityOfRed = 0.5
   , cellSize = 8
  }
