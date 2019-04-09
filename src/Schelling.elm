@@ -25,6 +25,7 @@ import Cards
 import Colorbrewer.Qualitative
 
 
+
 type alias Model = {
      nRows : Int
    , nCols : Int
