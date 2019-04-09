@@ -18,10 +18,9 @@ import Time exposing(Posix)
 import Random
 import Utility
 import Text
-import PseudoRandom
 import RNG
 
-tickInterval = 200
+tickInterval = 500
 
 
 main =
@@ -56,7 +55,7 @@ init flags =
   in
     ( { input = "App started"
       , output = "App started"
-      , cells = Schelling.initialize Schelling.defaultModel (RNG.floatSequence (2*dm.nRows*dm.nCols) 23)
+      , cells = Schelling.initialize Schelling.defaultModel (RNG.floatSequence (2*dm.nRows*dm.nCols) 23 (0,1))
       , schellingModel = Schelling.defaultModel
       , numberLikeMeString = "3"
       , fractionUnoccupiedString = "10"
@@ -143,7 +142,7 @@ update msg model =
                 smNew = {sm | threshold = threshold, probabilityOfUnoccupied = probabilityOfUnoccupied  }
 
             in
-            ( {model | cells = Schelling.initialize smNew (RNG.floatSequence (2*smNew.nRows*smNew.nCols) 23)
+            ( {model | cells = Schelling.initialize smNew (RNG.floatSequence (2*smNew.nRows*smNew.nCols) 23 (0,1))
                        , schellingModel = smNew
                        , tickCount = 0, appState = Stop}, Cmd.none)
 
