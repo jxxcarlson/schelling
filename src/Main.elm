@@ -18,8 +18,9 @@ import Time exposing(Posix)
 import Random
 import Utility
 import Text
+import PseudoRandom
 
-tickInterval = 333
+tickInterval = 400
 
 
 main =
@@ -36,11 +37,8 @@ type alias Model =
     , output : String
     , cells : Array Cell
     , schellingModel : Schelling.Model
-    , threshold : Float
     , numberLikeMeString : String
     , fractionUnoccupiedString : String
-    , fractionUnoccupied : Float
-    , fractionA : Float
     , tickCount : Int
     , randomNumber : Float
     , cellIndex : Int
@@ -57,13 +55,10 @@ init flags =
   in
     ( { input = "App started"
       , output = "App started"
-      , cells = Schelling.initialize Schelling.defaultModel (Utility.orbit Utility.ff (2*dm.nRows*dm.nCols) 23)
+      , cells = Schelling.initialize Schelling.defaultModel (PseudoRandom.floatSequence (2*dm.nRows*dm.nCols) (0,1))
       , schellingModel = Schelling.defaultModel
-      , threshold = 0.4
       , numberLikeMeString = "3"
-      , fractionUnoccupied = 0.1
       , fractionUnoccupiedString = "10"
-      , fractionA = 0.5
       , tickCount = 0
       , randomNumber = 0
       , cellIndex = 0
@@ -106,11 +101,10 @@ update msg model =
             ( model, Cmd.none )
 
         InputThreshold numberLikeMeString ->
-            ( { model | numberLikeMeString = numberLikeMeString, threshold = (stringToFloat numberLikeMeString 0)/8.0 }, Cmd.none )
+            ( { model | numberLikeMeString = numberLikeMeString}, Cmd.none )
 
         InputFractionUnoccupied str ->
-                    ( { model | fractionUnoccupiedString = str
-                         , fractionUnoccupied = (stringToFloat str 10)/100.0 }, Cmd.none )
+                    ( { model | fractionUnoccupiedString = str}, Cmd.none )
 
         UpdateModel ->
             (  model , Cmd.none )
@@ -143,10 +137,14 @@ update msg model =
         Reset ->
             let
                 sm = model.schellingModel
-                smdm = model.schellingModel
+                threshold = (String.toFloat model.numberLikeMeString |> Maybe.withDefault 3)/8
+                probabilityOfUnoccupied = (String.toFloat model.fractionUnoccupiedString |> Maybe.withDefault 10)/100.0
+                smNew = {sm | threshold = threshold, probabilityOfUnoccupied = probabilityOfUnoccupied  }
+
             in
-            ( {model | cells = Schelling.initialize sm (Utility.orbit Utility.ff (2*sm.nRows*sm.nCols) 23)
-                          , tickCount = 0, appState = Stop}, Cmd.none)
+            ( {model | cells = Schelling.initialize smNew (PseudoRandom.floatSequence (2*smNew.nRows*smNew.nCols) (0,1))
+                       , schellingModel = smNew
+                       , tickCount = 0, appState = Stop}, Cmd.none)
 
 
 
