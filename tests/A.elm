@@ -24,6 +24,7 @@ rands = Utility.orbit Utility.ff 2048 23
 
 cells = Schelling.initialize  testModel rands
 
+-- [Just 0.0617, Just 0.9688,Just 0.8465 ]
 
 
 suite : Test
@@ -33,7 +34,7 @@ suite =
             [ test "Check integrity of rands"  <|
 
                \_ ->
-                       Expect.equal [Just 0.0617, Just 0.9688,Just 0.8465 ] [LE.getAt 500 rands, LE.getAt 600 rands,LE.getAt 700 rands]
+                       Expect.equal [Just 0.454, Just 0.5922,Just 0.4735 ] [LE.getAt 500 rands, LE.getAt 600 rands,LE.getAt 700 rands]
              , test "Get a cell by address" <|
                 \_ ->
                     let
