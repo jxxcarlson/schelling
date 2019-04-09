@@ -36,9 +36,9 @@ type alias Model = {
   }
 
 defaultModel = {
-   nRows = 32
-  , nCols = 32
-  , threshold = 3
+   nRows = 40
+  , nCols = 40
+  , threshold = 0.4
   , probabilityOfUnoccupied = 0.1
   , probabilityOfRed = 0.5
   , cellSize = 8

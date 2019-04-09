@@ -4,23 +4,22 @@ import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Test exposing (..)
 import Schelling exposing(..)
-import Utility
 import List.Extra as LE
+import PseudoRandom
 
 
 testModel = {
-   nRows = 32
-  , nCols = 32
+   nRows = 40
+  , nCols = 40
   , threshold = 0.4
   , probabilityOfUnoccupied = 0.1
   , probabilityOfRed = 0.5
   , cellSize = 8
  }
--- 0.4 0.1 0.5
-rands1 = (Utility.orbit Utility.ff (2*testModel.nRows*testModel.nCols) 23)
 
-rands = Utility.orbit Utility.ff 2048 23
+n = testModel.nRows*testModel.nCols
 
+rands = PseudoRandom.floatSequence (2*n) (0,1)
 
 cells = Schelling.initialize  testModel rands
 
@@ -34,14 +33,14 @@ suite =
             [ test "Check integrity of rands"  <|
 
                \_ ->
-                       Expect.equal [Just 0.454, Just 0.5922,Just 0.4735 ] [LE.getAt 500 rands, LE.getAt 600 rands,LE.getAt 700 rands]
+                     Expect.equal [Just 0.6971619164465439, Just 0.8857613881519488 ] [LE.getAt 500 rands, LE.getAt 600 rands]
              , test "Get a cell by address" <|
                 \_ ->
                     let
                         a00 = Unoccupied (CellIndex 0) (Id 0)
                         b00 = get testModel (0,0) cells
                     in
-                        Expect.equal a00 b00
+                        Expect.equal b00 a00
              , test "Get another  cell by address" <|
                   \_ ->
                       let
