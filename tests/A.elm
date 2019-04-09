@@ -5,6 +5,7 @@ import Fuzz exposing (Fuzzer, int, list, string)
 import Test exposing (..)
 import Schelling exposing(..)
 import Utility
+import List.Extra as LE
 
 
 testModel = {
@@ -16,7 +17,10 @@ testModel = {
   , cellSize = 8
  }
 -- 0.4 0.1 0.5
-rands = (Utility.orbit Utility.ff (2*testModel.nRows*testModel.nCols) 23)
+rands1 = (Utility.orbit Utility.ff (2*testModel.nRows*testModel.nCols) 23)
+
+rands = Utility.orbit Utility.ff 2048 23
+
 
 cells = Schelling.initialize  testModel rands
 
@@ -26,7 +30,11 @@ suite : Test
 suite =
     describe "The Schelling module"
         [ describe "CellMatrix operations"
-            [ test "Get a cell by address" <|
+            [ test "Check integrity of rands"  <|
+
+               \_ ->
+                       Expect.equal [Just 0.0617, Just 0.9688,Just 0.8465 ] [LE.getAt 500 rands, LE.getAt 600 rands,LE.getAt 700 rands]
+             , test "Get a cell by address" <|
                 \_ ->
                     let
                         a00 = Unoccupied (CellIndex 0) (Id 0)
