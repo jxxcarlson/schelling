@@ -77,10 +77,13 @@ panel =
                  , el [] (newTabLink [Font.color (rgb 0 0 1)]
                        { url ="https://github.com/jxxcarlson/schelling"
                         , label = el [] (text "Code on GitHub") })
+                  , el [] (newTabLink [Font.color (rgb 0 0 1)]
+                                        { url ="https://medium.com/@jxxcarlson/schellings-segregation-model-i-43e612241b62"
+                                         , label = el [] (text "Schelling's Segregation Model I, in Medium.com") })
                    ]
 
 
                ]
 
-
+https://medium.com/@jxxcarlson/schellings-segregation-model-i-43e612241b62
 --- https://link.medium.com/RuadsCU1DV
