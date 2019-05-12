@@ -113,7 +113,7 @@ update msg model =
             case model.appState of
                 Stop -> (model, Cmd.none)
                 Go ->
-                 ({model | tickCount = model.tickCount + 1}, Random.generate NewRandomNumbers (Random.list 1000 (Random.int 0 100000)))
+                 ({model | tickCount =  model.tickCount + 1}, Random.generate NewRandomNumbers (Random.list 1000 (Random.int 0 100000)))
 
         NewRandomNumbers randList ->
             let
