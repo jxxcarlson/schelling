@@ -12,15 +12,17 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import Schelling exposing( Cell)
-import Array exposing(Array)
-import Time exposing(Posix)
+import Schelling exposing (Cell, InitialState(..))
+import Array exposing (Array)
+import Time exposing (Posix)
 import Random
 import Utility
 import Text
 import RNG
 
-tickInterval = 500
+
+tickInterval =
+    500
 
 
 main =
@@ -43,29 +45,39 @@ type alias Model =
     , randomNumber : Float
     , cellIndex : Int
     , appState : AppState
+    , initialState : InitialState
     }
 
 
-type AppState = Go | Stop
+type AppState
+    = Go
+    | Stop
+
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-  let
-    dm = Schelling.defaultModel
-  in
-    ( { input = "App started"
-      , output = "App started"
-      , cells = Schelling.initialize Schelling.defaultModel (RNG.floatSequence (2*dm.nRows*dm.nCols) 23 (0,1))
-      , schellingModel = Schelling.defaultModel
-      , numberLikeMeString = "3"
-      , fractionUnoccupiedString = "10"
-      , tickCount = 0
-      , randomNumber = 0
-      , cellIndex = 0
-      , appState = Stop
-      }
-    , Cmd.none
-    )
+    let
+        dm =
+            Schelling.defaultModel
+    in
+        ( { input = "App started"
+          , output = "App started"
+          , cells = Schelling.initialize Schelling.defaultModel (RNG.floatSequence (2 * dm.nRows * dm.nCols) 23 ( 0, 1 ))
+          , schellingModel = dm
+          , numberLikeMeString = "3"
+          , fractionUnoccupiedString = "10"
+          , tickCount = 0
+          , randomNumber = 0
+          , cellIndex = 0
+          , appState = Stop
+          , initialState = Random
+          }
+        , Cmd.none
+        )
+
+
+
+{- MSG -}
 
 
 type Msg
@@ -77,12 +89,11 @@ type Msg
     | NewRandomNumbers (List Int)
     | ToggleAppState
     | Reset
-
+    | SetInitialState InitialState
 
 
 type alias Flags =
     {}
-
 
 
 subscriptions model =
@@ -101,50 +112,120 @@ update msg model =
             ( model, Cmd.none )
 
         InputThreshold numberLikeMeString ->
-            ( { model | numberLikeMeString = numberLikeMeString}, Cmd.none )
+            ( { model | numberLikeMeString = numberLikeMeString }, Cmd.none )
 
         InputFractionUnoccupied str ->
-                    ( { model | fractionUnoccupiedString = str}, Cmd.none )
+            ( { model | fractionUnoccupiedString = str }, Cmd.none )
 
         UpdateModel ->
-            (  model , Cmd.none )
+            ( model, Cmd.none )
 
         Tick posix ->
             case model.appState of
-                Stop -> (model, Cmd.none)
+                Stop ->
+                    ( model, Cmd.none )
+
                 Go ->
-                 ({model | tickCount =  model.tickCount + 1}, Random.generate NewRandomNumbers (Random.list 1000 (Random.int 0 100000)))
+                    ( { model | tickCount = model.tickCount + 1 }, Random.generate NewRandomNumbers (Random.list 1000 (Random.int 0 100000)) )
 
         NewRandomNumbers randList ->
             let
-                sm = model.schellingModel
-                n = sm.nRows*sm.nCols - 1
+                sm =
+                    model.schellingModel
+
+                n =
+                    sm.nRows * sm.nCols - 1
             in
-              if model.appState == Stop then
-                 (model, Cmd.none)
-              else
-                ({ model |
-                   cells = Schelling.updateCells model.schellingModel
-                             (Schelling.inputSequence model.schellingModel randList)
-                             model.cells
-                   }, Cmd.none)
+                if model.appState == Stop then
+                    ( model, Cmd.none )
+                else
+                    ( { model
+                        | cells =
+                            Schelling.updateCells model.schellingModel
+                                (Schelling.inputSequence model.schellingModel randList)
+                                model.cells
+                      }
+                    , Cmd.none
+                    )
 
         ToggleAppState ->
             case model.appState of
-                Stop -> ( { model | appState = Go}, Cmd.none )
-                Go -> ( { model | appState = Stop}, Cmd.none )
+                Stop ->
+                    ( { model | appState = Go }, Cmd.none )
+
+                Go ->
+                    ( { model | appState = Stop }, Cmd.none )
 
         Reset ->
-            let
-                sm = model.schellingModel
-                threshold = (String.toFloat model.numberLikeMeString |> Maybe.withDefault 3)/8
-                probabilityOfUnoccupied = (String.toFloat model.fractionUnoccupiedString |> Maybe.withDefault 10)/100.0
-                smNew = {sm | threshold = threshold, probabilityOfUnoccupied = probabilityOfUnoccupied  }
+            case model.initialState of
+                Random ->
+                    resetRandom model
 
-            in
-            ( {model | cells = Schelling.initialize smNew (RNG.floatSequence (2*smNew.nRows*smNew.nCols) 23 (0,1))
-                       , schellingModel = smNew
-                       , tickCount = 0, appState = Stop}, Cmd.none)
+                Stable ->
+                    resetStable model 0
+
+                Unstable k ->
+                    resetStable model k
+
+        SetInitialState initialState ->
+            ( { model | initialState = initialState }, Cmd.none )
+
+
+
+-- ( { model | cells = Schelling.initialize2 Schelling.defaultModel 400 }, Cmd.none )
+
+
+resetStable : Model -> Int -> ( Model, Cmd Msg )
+resetStable model k =
+    let
+        sm =
+            model.schellingModel
+
+        n =
+            sm.nCols * sm.nRows
+
+        threshold =
+            (String.toFloat model.numberLikeMeString |> Maybe.withDefault 3) / 8
+
+        smNew =
+            { sm | threshold = threshold }
+
+        newCells =
+            Schelling.initialize2 model.initialState smNew (n // 2)
+    in
+        ( { model
+            | cells = newCells
+            , schellingModel = smNew
+            , tickCount = 0
+            , appState = Stop
+          }
+        , Cmd.none
+        )
+
+
+resetRandom : Model -> ( Model, Cmd Msg )
+resetRandom model =
+    let
+        sm =
+            model.schellingModel
+
+        threshold =
+            (String.toFloat model.numberLikeMeString |> Maybe.withDefault 3) / 8
+
+        probabilityOfUnoccupied =
+            (String.toFloat model.fractionUnoccupiedString |> Maybe.withDefault 10) / 100.0
+
+        smNew =
+            { sm | threshold = threshold, probabilityOfUnoccupied = probabilityOfUnoccupied }
+    in
+        ( { model
+            | cells = Schelling.initialize smNew (RNG.floatSequence (2 * smNew.nRows * smNew.nCols) 23 ( 0, 1 ))
+            , schellingModel = smNew
+            , tickCount = 0
+            , appState = Stop
+          }
+        , Cmd.none
+        )
 
 
 
@@ -160,38 +241,55 @@ view model =
 
 mainColumn : Model -> Element Msg
 mainColumn model =
-    row [ spacing 24, centerX, centerY ] [appPanel model, Text.panel]
+    row [ spacing 24, centerX, centerY ] [ appPanel model, Text.panel ]
 
 
 appPanel : Model -> Element Msg
 appPanel model =
-    column mainColumnStyle [
-                 title "Schelling model"
-                , display model
-                , controls model
-                , indicators model
-             ]
+    column mainColumnStyle
+        [ title "Schelling model"
+        , display model
+        , controls model
+        , indicators model
+        , initialStateSelector model
+        ]
 
 
+initialStateSelector model =
+    row [ spacing 12 ]
+        [ randomInitialModelButton model
+        , stableInitialModelButton model
+        , unstableInitialModelButton1 model
+        , unstableInitialModelButton2 model
+        ]
 
-display : Model-> Element Msg
+
+display : Model -> Element Msg
 display model =
-  column [moveRight 40, moveDown 20] [Schelling.renderAsHtml model.schellingModel model.cells |> Element.html]
+    column [ moveRight 40, moveDown 20 ] [ Schelling.renderAsHtml model.schellingModel model.cells |> Element.html ]
+
 
 controls : Model -> Element Msg
 controls model =
-    row [spacing 12, moveUp 12] [ goButton  model, resetButton, inputTreshold model, inputFractionOccupied model]
+    row [ spacing 12, moveUp 12 ] [ goButton model, resetButton, inputTreshold model, inputFractionOccupied model ]
+
 
 indicators : Model -> Element Msg
 indicators model =
-    row [spacing 18] [
-                    el [Font.size 14] (text <| "cycle: " ++ String.fromInt model.tickCount)
-                   , el [Font.size 14]
-                       (text <| "satisfied: "
-                          ++ (String.fromFloat <| Utility.roundTo 1 <| 100*(Schelling.fractionSatisfied model.cells))++"%")
-                  ]
+    row [ spacing 18 ]
+        [ el [ Font.size 14 ] (text <| "cycle: " ++ String.fromInt model.tickCount)
+        , el [ Font.size 14 ]
+            (text <|
+                "satisfied: "
+                    ++ (String.fromFloat <| Utility.roundTo 1 <| 100 * (Schelling.fractionSatisfied model.cells))
+                    ++ "%"
+            )
+        ]
 
-labelWidth = (px 80)
+
+labelWidth =
+    (px 80)
+
 
 title : String -> Element msg
 title str =
@@ -206,21 +304,23 @@ outputDisplay model =
 
 inputTreshold : Model -> Element Msg
 inputTreshold model =
-    Input.text [Font.size 12, height (px 24), width (px 50)]
+    Input.text [ Font.size 12, height (px 24), width (px 50) ]
         { onChange = InputThreshold
         , text = model.numberLikeMeString
         , placeholder = Nothing
-        , label = Input.labelLeft [] <| el [moveDown 8] (text "Like me (1-8): ")
+        , label = Input.labelLeft [] <| el [ moveDown 8 ] (text "Like me (1-8): ")
         }
+
 
 inputFractionOccupied : Model -> Element Msg
 inputFractionOccupied model =
-    Input.text [Font.size 12, height (px 24), width (px 50)]
+    Input.text [ Font.size 12, height (px 24), width (px 50) ]
         { onChange = InputFractionUnoccupied
         , text = model.fractionUnoccupiedString
         , placeholder = Nothing
-        , label = Input.labelLeft [] <| el [moveDown 8] (text "Empty (%): ")
+        , label = Input.labelLeft [] <| el [ moveDown 8 ] (text "Empty (%): ")
         }
+
 
 goButton : Model -> Element Msg
 goButton model =
@@ -232,7 +332,7 @@ goButton model =
         ]
 
 
-resetButton :  Element Msg
+resetButton : Element Msg
 resetButton =
     row [ centerX ]
         [ Input.button smallButtonStyle
@@ -242,12 +342,56 @@ resetButton =
         ]
 
 
-
 goButtonLabel : Model -> String
 goButtonLabel model =
     case model.appState of
-        Go -> "Stop"
-        Stop -> "Go"
+        Go ->
+            "Stop"
+
+        Stop ->
+            "Go"
+
+
+randomInitialModelButton : Model -> Element Msg
+randomInitialModelButton model =
+    row [ centerX ]
+        [ Input.button (activeButtonStyle (model.initialState == Random))
+            { onPress = Just (SetInitialState Random)
+            , label = el [ centerX, centerY ] (text "Random")
+            }
+        ]
+
+
+stableInitialModelButton : Model -> Element Msg
+stableInitialModelButton model =
+    row [ centerX ]
+        [ Input.button (activeButtonStyle (model.initialState == Stable))
+            { onPress = Just (SetInitialState Stable)
+            , label = el [ centerX, centerY ] (text "Unstable 0")
+            }
+        ]
+
+
+unstableInitialModelButton1 : Model -> Element Msg
+unstableInitialModelButton1 model =
+    row [ centerX ]
+        [ Input.button (activeButtonStyle (model.initialState == (Unstable 1)))
+            { onPress = Just (SetInitialState (Unstable 1))
+            , label = el [ centerX, centerY ] (text "Unstable 1")
+            }
+        ]
+
+
+unstableInitialModelButton2 : Model -> Element Msg
+unstableInitialModelButton2 model =
+    row [ centerX ]
+        [ Input.button (activeButtonStyle (model.initialState == Unstable 2))
+            { onPress = Just (SetInitialState (Unstable 2))
+            , label = el [ centerX, centerY ] (text "Unstable 2")
+            }
+        ]
+
+
 
 --
 -- STYLE
@@ -255,8 +399,9 @@ goButtonLabel model =
 
 
 mainColumnStyle =
-    [  Background.color (rgb255 240 240 240)
+    [ Background.color (rgb255 240 240 240)
     , paddingXY 20 20
+    , spacing 15
     ]
 
 
@@ -266,6 +411,7 @@ buttonStyle =
     , paddingXY 15 8
     ]
 
+
 smallButtonStyle =
     [ Background.color (rgb255 40 40 40)
     , Font.color (rgb255 255 255 255)
@@ -273,3 +419,19 @@ smallButtonStyle =
     , Font.size 12
     , height (px 20)
     ]
+
+
+activeButtonStyle selected =
+    let
+        bgColor =
+            if selected then
+                Background.color (rgb255 180 0 0)
+            else
+                Background.color (rgb255 40 40 40)
+    in
+        [ bgColor
+        , Font.color (rgb255 255 255 255)
+        , paddingXY 15 4
+        , Font.size 12
+        , height (px 20)
+        ]
