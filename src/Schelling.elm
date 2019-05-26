@@ -730,13 +730,13 @@ renderCell model cellArray ( row, col ) =
         color =
             case get model ( row, col ) cellArray |> identity of
                 Red ->
-                    "rgb(166 206 227)"
+                    "rgb(213, 94, 0)"
 
                 Blue ->
-                    "rgb(31, 120, 180)"
+                    "rgb(0, 114, 178)"
 
                 IUndefined ->
-                    "rgb(40, 40, 40)"
+                    "rgb(0, 0, 0)"
     in
         gridRect model.cellSize color ( row, col )
 
@@ -753,3 +753,22 @@ gridRect size color ( row, col ) =
         , SA.stroke "rgb(25, 55, 125)"
         ]
         []
+
+
+{-  COLOR
+
+                 Red ->
+                     "rgb(230, 159, 0)"
+
+                Blue ->
+                    "rgb(86, 180, 233)"
+
+                IUndefined ->
+                    "rgb(0, 0, 0)"
+
+R:  "rgb(166 206 227)"
+B:  "rgb(31, 120, 180)"
+U:  "rgb(40, 40, 40)"
+
+
+-}
