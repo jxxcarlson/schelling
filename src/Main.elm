@@ -284,6 +284,20 @@ indicators model =
                     ++ (String.fromFloat <| Utility.roundTo 1 <| 100 * (Schelling.fractionSatisfied model.cells))
                     ++ "%"
             )
+        , el [ Font.size 14 ]
+               (text <|
+                   "threshold: "
+                       ++ (String.fromFloat <| Utility.roundTo 1 <| 100 * model.schellingModel.threshold)
+                       ++ "%"
+               )
+        , el [ Font.size 14 ]
+             (text <|
+                 "similar: "
+                     ++ (String.fromFloat <| Utility.roundTo 1 <| 100 *
+                        (Schelling.aggregateFractionLikeMe model.schellingModel model.cells))
+                     ++ "%"
+             )
+
         ]
 
 

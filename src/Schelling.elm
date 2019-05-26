@@ -340,6 +340,15 @@ listFractionLikeMe model cellArray =
         List.map (\tuple -> fractionLikeMe model tuple cellArray) tuples
 
 
+aggregateFractionLikeMe : Model -> Array Cell -> Float
+aggregateFractionLikeMe model cellArray =
+    let
+        ratios = listFractionLikeMe model cellArray
+        sumOfRatios = List.sum ratios
+        n = List.length ratios  |> toFloat
+    in
+       sumOfRatios/n
+
 
 --
 -- UPDATE
