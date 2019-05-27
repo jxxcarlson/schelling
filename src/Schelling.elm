@@ -1,16 +1,15 @@
-module Schelling exposing (..)
+module Schelling exposing (    Model
+                               , defaultModel
+                               , Cell
+                               , updateCells
+                               , initialize
+                               , initialize2
+                               , InitialState(..)
+                               , inputSequence
+                               , fractionSatisfied
+                               , aggregateFractionLikeMe
+                               , renderAsHtml)
 
-{- (
-    Cell
-    , nRows
-    , nCols
-    , updateCells
-    , initialize
-    , inputSequence
-    , fractionSatisfied
-    , renderAsHtml
-   )
--}
 
 import Array exposing (Array)
 import Svg exposing (Svg, svg, rect, g)
@@ -20,6 +19,7 @@ import Array.Extra
 import List.Extra
 import Utility
 import Cards
+import Maybe.Extra
 import Colorbrewer.Qualitative
 
 
@@ -298,31 +298,37 @@ nextEmotionalState model ( row, col ) array =
                 Satisfied
 
 
+
+
 {-| Compute the fraction of occupied cells that have the same
 identity as the cell with given (row, col).
 -}
-fractionLikeMe : Model -> ( Int, Int ) -> Array Cell -> Float
+fractionLikeMe : Model -> ( Int, Int ) -> Array Cell -> Maybe Float
 fractionLikeMe model ( row, col ) array =
     let
-        nbs =
-            neighbors model ( row, col ) array
-
-        numberOfNeighbors =
-            List.length nbs |> toFloat
-
         me =
             get model ( row, col ) array
-
-        myIdentity =
-            identity me
-
-        myTribe =
-            nbs |> List.filter (\cell -> identity cell == myIdentity)
-
-        sizeOfMyTribe =
-            toFloat (List.length myTribe)
     in
-        sizeOfMyTribe / numberOfNeighbors
+        case occupied me of
+            False -> Nothing
+            True ->
+                let
+                    nbs =
+                        neighbors model ( row, col ) array
+
+                    numberOfNeighbors =
+                        List.length nbs |> toFloat
+
+                    myIdentity =
+                        identity me
+
+                    myTribe =
+                        nbs |> List.filter (\cell -> identity cell == myIdentity)
+
+                    sizeOfMyTribe =
+                        toFloat (List.length myTribe)
+                in
+                    Just <| sizeOfMyTribe / numberOfNeighbors
 
 
 listFractionLikeMe : Model -> Array Cell -> List Float
@@ -338,6 +344,7 @@ listFractionLikeMe model cellArray =
             List.map (matrixIndex model) indices
     in
         List.map (\tuple -> fractionLikeMe model tuple cellArray) tuples
+         |> Maybe.Extra.values
 
 
 aggregateFractionLikeMe : Model -> Array Cell -> Float
@@ -345,7 +352,7 @@ aggregateFractionLikeMe model cellArray =
     let
         ratios = listFractionLikeMe model cellArray
         sumOfRatios = List.sum ratios
-        n = List.length ratios  |> toFloat
+        n = numberOccupied cellArray  |> toFloat
     in
        sumOfRatios/n
 
