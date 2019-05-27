@@ -276,21 +276,21 @@ controls model =
 
 indicators : Model -> Element Msg
 indicators model =
-    row [ spacing 18 ]
-        [ el [ Font.size 14 ] (text <| "cycle: " ++ String.fromInt model.tickCount)
-        , el [ Font.size 14 ]
+    row [ spacing 18, width (px 430) ]
+        [ el [ Font.size 14, width (px 55) ] (text <| "cycle: " ++ String.fromInt model.tickCount)
+        , el [ Font.size 14, width (px numberDisplayWidth) ]
             (text <|
                 "satisfied: "
                     ++ (String.fromFloat <| Utility.roundTo 1 <| 100 * (Schelling.fractionSatisfied model.cells))
                     ++ "%"
             )
-        , el [ Font.size 14 ]
+        , el [ Font.size 14, width (px numberDisplayWidth) ]
                (text <|
                    "threshold: "
                        ++ (String.fromFloat <| Utility.roundTo 1 <| 100 * model.schellingModel.threshold)
                        ++ "%"
                )
-        , el [ Font.size 14 ]
+        , el [ Font.size 14, width (px numberDisplayWidth) ]
              (text <|
                  "similar: "
                      ++ (String.fromFloat <| Utility.roundTo 1 <| 100 *
@@ -300,6 +300,7 @@ indicators model =
 
         ]
 
+numberDisplayWidth = 95
 
 labelWidth =
     (px 80)
