@@ -8,6 +8,7 @@ module Schelling exposing (    Model
                                , inputSequence
                                , fractionSatisfied
                                , aggregateFractionLikeMe
+                               , setThresholds
                                , renderAsHtml)
 
 
@@ -223,6 +224,20 @@ replace : Cell -> Array Cell -> Array Cell
 replace cell cellArray =
     Array.set (idx cell) cell cellArray
 
+
+-- Occupied CellIndex Id Threshold Identity EmotionalState
+
+setThreshold : Float -> Cell -> Cell
+setThreshold t cell =
+    case cell of
+        Unoccupied _ _ -> cell
+        Occupied cellIndex_ id_ threshold_ identity_ emotionalState_ ->
+          Occupied cellIndex_ id_ (Threshold t) identity_ emotionalState_
+
+
+setThresholds : Float -> Array Cell -> Array Cell
+setThresholds  threshold_ cellArray =
+    Array.map (setThreshold threshold_) cellArray
 
 
 --

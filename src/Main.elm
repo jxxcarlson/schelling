@@ -117,7 +117,13 @@ update msg model =
             ( model, Cmd.none )
 
         InputThreshold numberLikeMeString ->
-            ( { model | numberLikeMeString = numberLikeMeString }, Cmd.none )
+            let
+                threshold = (numberLikeMeString |> String.toFloat |> Maybe.withDefault 3) / 8
+                sm = model.schellingModel
+                smNew = { sm | threshold = threshold }
+                newCells = Schelling.setThresholds threshold model.cells
+             in
+               ( { model | numberLikeMeString = numberLikeMeString, schellingModel = smNew, cells = newCells }, Cmd.none )
 
         InputFractionUnoccupied str ->
             ( { model | fractionUnoccupiedString = str }, Cmd.none )
@@ -131,7 +137,7 @@ update msg model =
                     ( model, Cmd.none )
 
                 Go ->
-                    ( { model | tickCount = model.tickCount + 1 }, Random.generate NewRandomNumbers (Random.list 1000 (Random.int 0 100000)) )
+                      ( { model | tickCount = model.tickCount + 1 }, Random.generate NewRandomNumbers (Random.list 1000 (Random.int 0 100000)) )
 
         NewRandomNumbers randList ->
             let
@@ -324,7 +330,20 @@ display model =
 
 controls : Model -> Element Msg
 controls model =
-    row [ spacing 12, moveUp 12 ] [ goButton model, resetButton, inputTreshold model, inputFractionOccupied model ]
+    row [ spacing 12, moveUp 12 ] [ goButton model
+       , resetButton
+       , inputTreshold model
+       , inputFractionOccupied model
+       , statusIndicator model]
+
+
+statusIndicator model =
+    let
+        (bgColor, message)  = case model.appState of
+            Go -> (Element.rgb255 0 140 0, "Running")
+            Stop -> (Element.rgb255 140 0 0, "Stopped")
+    in
+      el [Background.color bgColor, Font.size 12, Font.color <| Element.rgb 1 1 1, padding 6] (text message)
 
 
 indicators : Model -> Element Msg
@@ -493,7 +512,7 @@ activeButtonStyle selected =
     let
         bgColor =
             if selected then
-                Background.color (rgb255 180 0 0)
+                Background.color (rgb255 140 0 0)
             else
                 Background.color (rgb255 40 40 40)
     in
