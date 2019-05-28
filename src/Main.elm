@@ -19,6 +19,7 @@ import Random
 import Utility
 import Text
 import RNG
+import Graph
 
 
 tickInterval =
@@ -39,6 +40,8 @@ type alias Model =
     , output : String
     , cells : Array Cell
     , schellingModel : Schelling.Model
+    , satisfactionData : List (Float, Float)
+    , similarityData : List (Float, Float)
     , numberLikeMeString : String
     , fractionUnoccupiedString : String
     , tickCount : Int
@@ -64,6 +67,8 @@ init flags =
           , output = "App started"
           , cells = Schelling.initialize Schelling.defaultModel (RNG.floatSequence (2 * dm.nRows * dm.nCols) 23 ( 0, 1 ))
           , schellingModel = dm
+          , satisfactionData = []
+          , similarityData = []
           , numberLikeMeString = "3"
           , fractionUnoccupiedString = "10"
           , tickCount = 0
@@ -139,14 +144,26 @@ update msg model =
                 if model.appState == Stop then
                     ( model, Cmd.none )
                 else
+                  let
+                      newCells = Schelling.updateCells model.schellingModel
+                                     (Schelling.inputSequence model.schellingModel randList)
+                                      model.cells
+                      satisfied = Schelling.fractionSatisfied newCells
+                      similar = Schelling.aggregateFractionLikeMe model.schellingModel newCells
+                      nextState = if model.tickCount < 100 then model.appState else Stop
+                      t = model.tickCount |> toFloat
+                  in
                     ( { model
-                        | cells =
-                            Schelling.updateCells model.schellingModel
-                                (Schelling.inputSequence model.schellingModel randList)
-                                model.cells
+                        | cells = newCells
+                          , satisfactionData = (t, satisfied)::model.satisfactionData
+                          , similarityData = (t, similar)::model.similarityData
+                          , appState = nextState
+
                       }
                     , Cmd.none
                     )
+
+
 
         ToggleAppState ->
             case model.appState of
@@ -168,7 +185,7 @@ update msg model =
                     resetStable model k
 
         SetInitialState initialState ->
-            ( { model | initialState = initialState }, Cmd.none )
+            ( { model | initialState = initialState, satisfactionData = [], similarityData = [] }, Cmd.none )
 
 
 
@@ -198,6 +215,7 @@ resetStable model k =
             , schellingModel = smNew
             , tickCount = 0
             , appState = Stop
+            , satisfactionData = [], similarityData = []
           }
         , Cmd.none
         )
@@ -223,6 +241,7 @@ resetRandom model =
             , schellingModel = smNew
             , tickCount = 0
             , appState = Stop
+            , satisfactionData = [], similarityData = []
           }
         , Cmd.none
         )
@@ -249,14 +268,48 @@ appPanel model =
     column mainColumnStyle
         [ title "Schelling model"
         , display model
-        , controls model
-        , indicators model
-        , initialStateSelector model
+        , column [moveUp 80, spacing 5] [
+              charts model
+            , controls model
+            , indicators model
+            , initialStateSelector model
+            ]
         ]
 
 
+
+charts model =
+    column [spacing 15, paddingEach {top = 0, right = 0, bottom = 20, left = 0}, moveUp 10] [
+        row [spacing 30] [
+                     Graph.lineChartWithDataWindow  dataWindow lineGraphAttributes model.satisfactionData |> Element.html,
+                     Graph.lineChartWithDataWindow  dataWindow lineGraphAttributes model.similarityData |> Element.html
+                 ]
+       , chartLabels
+       ]
+
+chartLabels =
+    row [spacing 50, Font.size 11, moveRight 30] [
+        el [width (px 200)] (el [centerX] (text "Satisfaction"))
+        , el [width (px 200)] (el [centerX] (text "Similarity Index"))
+    ]
+
+
+dataWindow = {
+    xMin = 0.0
+  , xMax = 100.0
+  , yMin = 0.0
+  , yMax = 1.0
+ }
+
+
+lineGraphAttributes =
+    {   graphHeight = 60
+      , graphWidth = 200
+      , options = [ Graph.Color "red",Graph.XTickmarks 11, Graph.YTickmarks 5]
+    }
+
 initialStateSelector model =
-    row [ spacing 12 ]
+    row [ spacing 12, paddingXY 0 10 ]
         [ randomInitialModelButton model
         , stableInitialModelButton model
         , unstableInitialModelButton1 model
@@ -266,7 +319,7 @@ initialStateSelector model =
 
 display : Model -> Element Msg
 display model =
-    column [ moveRight 40, moveDown 20 ] [ Schelling.renderAsHtml model.schellingModel model.cells |> Element.html ]
+    column [ moveRight 90 ] [ Schelling.renderAsHtml model.schellingModel model.cells |> Element.html ]
 
 
 controls : Model -> Element Msg
@@ -416,7 +469,7 @@ unstableInitialModelButton2 model =
 mainColumnStyle =
     [ Background.color (rgb255 240 240 240)
     , paddingXY 20 20
-    , spacing 15
+    , spacing 10
     ]
 
 
